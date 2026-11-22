@@ -12,8 +12,11 @@ The codebase is organized into clean, unidirectional layers so that HTTP transpo
 
 ```text
 ┌─────────────────────────────────────────────────────────────┐
-│ CLI Entrypoint (src/cli.ts)                                 │
-│ - Parses subcommands & flags via node:util parseArgs        │
+│ CLI Layer (src/cli.ts + src/cli/)                           │
+│ - cli.ts: thin router dispatching to handlers               │
+│ - cli/flags.ts: parseArgs option schemas & helpers          │
+│ - cli/handlers.ts: per-command orchestration entry points   │
+│ - cli/help.ts: usage & help text                            │
 │ - Builds CommandContext (baseUrl, classId, cookie, LLM,     │
 │   reports) from env + flags                                 │
 └──────────────────────────────┬──────────────────────────────┘
@@ -68,7 +71,7 @@ The codebase is organized into clean, unidirectional layers so that HTTP transpo
 - **`src/services/`**: Domain workflow orchestrators (`quiz-inspector.service.ts`, `quiz-form.mapper.ts`, `quiz-solver.service.ts`) decoupled from CLI flags and report files.
 - **`src/exporters/`**: Formats typed domain models into clean Arabic (`العربية`) Markdown files and persists timestamped reports plus `latest.md` under `reports/<command>/`.
 - **`src/commands/`**: Thin CLI controllers that wire `CommandContext` to services and exporters.
-- **`src/cli.ts`**: Single entrypoint that routes subcommands and parses CLI flags.
+- **`src/cli.ts` + `src/cli/`**: Thin entrypoint (`cli.ts`) that routes top-level commands to handlers in `src/cli/handlers.ts`. Flag schemas live in `src/cli/flags.ts` (shared `parseArgs` option constants + `str`/`flag`/`createContext` helpers), and all usage/help text lives in `src/cli/help.ts`.
 
 ---
 
@@ -183,7 +186,7 @@ Every command that produces structured data generates an Arabic-language Markdow
 2. **Create Parser**: Add a pure Cheerio parser in `src/parsers/<name>.parser.ts` and export it from `src/parsers/index.ts`.
 3. **Create Exporter**: Add an Arabic Markdown renderer in `src/exporters/<name>.exporter.ts`.
 4. **Create Command Handler**: Add orchestration logic in `src/commands/<name>.command.ts`.
-5. **Wire CLI**: Register the subcommand and flags in `src/cli.ts`.
+5. **Wire CLI**: Add a handler in `src/cli/handlers.ts`, register flag options in `src/cli/flags.ts`, add help text in `src/cli/help.ts`, and route the command in `src/cli.ts`.
 
 ### Adding a New LLM Provider
 1. Implement the `LlmProvider` interface (`solveQuestion`) in `src/llm/adapters/<name>.adapter.ts` (reuse `buildQuestionPrompts`, `validateAndNormalizeLlmAnswer`, `fetchWithTransientRetry`).

@@ -64,16 +64,16 @@ Create a `.env` file in the project root (copy from `.env.example`). **Never com
 
 ```env
 # REQUIRED: Your authenticated session cookie from the LMS browser session.
-# Get this from browser DevTools > Application > Cookies > qeducation.edu.gov.qa
+# Get this from browser DevTools > Application > Cookies > <your-lms>.edu.gov.qa
 # Copy the full Cookie header value here. All values are masked as "VALUES" in logs/reports.
 LMS_COOKIE="VALUES"
 
-# Base URL of the Qatar Education portal (usually no need to change).
-LMS_BASE_URL="https://qeducation.edu.gov.qa"
+# REQUIRED: Base URL of your LMS portal.
+LMS_BASE_URL="https://<your-lms>.edu.gov.qa"
 
 # REQUIRED for class-scoped commands (assignments, lessons, quiz scan):
 # Your class / section ID. Find it in the LMS URL when viewing your class.
-# Example: https://qeducation.edu.gov.qa/student_assignments/list/123456
+# Example: https://<your-lms>.edu.gov.qa/student_assignments/list/123456
 LMS_CLASS_ID="YOUR_CLASS_ID"
 
 # Optional: Custom directory for generated reports (defaults to ./reports)
@@ -111,7 +111,7 @@ npx tsx src/cli.ts assignments list --class-id <your-class-id>
 npx tsx src/cli.ts assignments due --class-id <your-class-id>
 
 # Or use a custom URL directly
-npx tsx src/cli.ts assignments due --url "https://qeducation.edu.gov.qa/student_assignments/due/<your-class-id>"
+npx tsx src/cli.ts assignments due --url "https://<your-lms>.edu.gov.qa/student_assignments/due/<your-class-id>"
 
 # List lessons and sections
 npx tsx src/cli.ts lessons list --class-id <your-class-id>
@@ -121,8 +121,8 @@ npx tsx src/cli.ts lessons list --class-id <your-class-id>
 
 ```bash
 # Inspect a specific quiz by show URL, display URL, or quiz ID
-npx tsx src/cli.ts quiz inspect "https://qeducation.edu.gov.qa/student_quiz_assignment/show/<quiz-id>"
-npx tsx src/cli.ts quiz inspect "https://qeducation.edu.gov.qa/student_take_quiz_assignment/display/<quiz-id>?part=1&results=<results-id>"
+npx tsx src/cli.ts quiz inspect "https://<your-lms>.edu.gov.qa/student_quiz_assignment/show/<quiz-id>"
+npx tsx src/cli.ts quiz inspect "https://<your-lms>.edu.gov.qa/student_take_quiz_assignment/display/<quiz-id>?part=1&results=<results-id>"
 npx tsx src/cli.ts quiz inspect <quiz-id>
 
 # Scan all due quizzes for a class (skips unstarted attempts by default)
@@ -136,13 +136,13 @@ npx tsx src/cli.ts quiz scan --class-id <your-class-id> --start-new
 
 ```bash
 # Preview what would be sent (NO POST requests are made)
-npx tsx src/cli.ts quiz draft "https://qeducation.edu.gov.qa/student_take_quiz_assignment/display/<quiz-id>?part=1&results=<results-id>"
+npx tsx src/cli.ts quiz draft "https://<your-lms>.edu.gov.qa/student_take_quiz_assignment/display/<quiz-id>?part=1&results=<results-id>"
 
-# Provide custom answers (JSON string or @file path)
+# Provide custom answers as a JSON string mapping part numbers to answers
 npx tsx src/cli.ts quiz draft <display-url> --answers '{"1":"Answer text","2":"4"}'
 
 # Actually save draft answers and pause the attempt (requires --apply)
-npx tsx src/cli.ts quiz draft <display-url> --apply --answers @answers.json
+npx tsx src/cli.ts quiz draft <display-url> --apply --answers '{"1":"Answer text"}'
 
 # Allow timed quizzes (aborts by default if timed_quiz=true)
 npx tsx src/cli.ts quiz draft <display-url> --apply --allow-timed
@@ -155,8 +155,8 @@ npx tsx src/cli.ts quiz draft <display-url> --apply --allow-timed
 ```bash
 # Monitor default dashboard or custom URLs
 npx tsx src/cli.ts monitor
-npx tsx src/cli.ts monitor "https://qeducation.edu.gov.qa/student_assignments/list/<your-class-id>"
-npx tsx src/cli.ts monitor "https://qeducation.edu.gov.qa/student_quiz_assignment/show/<quiz-id>"
+npx tsx src/cli.ts monitor "https://<your-lms>.edu.gov.qa/student_assignments/list/<your-class-id>"
+npx tsx src/cli.ts monitor "https://<your-lms>.edu.gov.qa/student_quiz_assignment/show/<quiz-id>"
 
 # Custom CSS selector for DOM extraction
 npx tsx src/cli.ts monitor <url> --selector "#mainContent .question"
