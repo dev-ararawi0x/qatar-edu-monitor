@@ -1,0 +1,102 @@
+export interface QuizShowInfo {
+  title: string;
+  csrfToken: string | null;
+  actionButtonText: string | null;
+  actionButtonHref: string | null;
+  isResumeAttempt: boolean;
+  sidebarDetails: string[];
+}
+
+export interface InitQuizConfig {
+  quizId: number | null;
+  resultsId: number | null;
+  part: number | null;
+  parts: number | null;
+  timedQuiz: boolean;
+  timeLeft: number | null;
+  resumeRefresh: boolean;
+}
+
+export interface QuestionChoice {
+  value: string;
+  label: string;
+  checked: boolean;
+}
+
+export type QuizInputType =
+  | "single_choice"
+  | "multiple_choice"
+  | "free_text"
+  | "structured_input"
+  | "file_upload"
+  | "unknown";
+
+export interface QuestionFieldDetail {
+  name: string;
+  type: string;
+  tagName: "input" | "textarea" | "select" | "file";
+  value?: string;
+  checked?: boolean;
+  options?: string[];
+}
+
+export interface ParsedQuestionScreen {
+  stage: "question";
+  questionHeader: string;
+  points: string;
+  action: string;
+  enctype: string;
+  hiddenFields: Record<string, string>;
+  promptText: string;
+  imageUrls: string[];
+  inputType: QuizInputType;
+  hasRichTextEditor: boolean;
+  hasPlainTextInput: boolean;
+  hasFileUpload: boolean;
+  fileInputNames: string[];
+  fieldDetails: QuestionFieldDetail[];
+  choices: QuestionChoice[];
+  currentTextAnswer: string;
+  structuredAnswers: Record<string, string | string[]>;
+  formFieldNames: string[];
+}
+
+export interface SummaryItem {
+  questionTitle: string;
+  promptPreview: string;
+  recordedAnswer: string;
+}
+
+export interface ParsedSummaryScreen {
+  stage: "summary";
+  finishAction: string;
+  authenticityToken: string | null;
+  summaryItems: SummaryItem[];
+}
+
+export type ParsedQuizScreen = ParsedQuestionScreen | ParsedSummaryScreen;
+
+export interface QuizPartQuestion {
+  part: number;
+  totalParts: number;
+  screen: ParsedQuestionScreen;
+}
+
+export interface QuizDraftAttemptResult {
+  dryRun: boolean;
+  quizId: number;
+  resultsId: number;
+  totalParts: number;
+  pausedSafely: boolean;
+  reachedSummary: boolean;
+  steps: Array<{
+    part: number;
+    questionHeader: string;
+    sentAnswer: string;
+    action: string;
+    status?: number;
+  }>;
+  questions: QuizPartQuestion[];
+  summaryItems?: SummaryItem[];
+  finishAction?: string;
+}

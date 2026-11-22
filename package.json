@@ -1,14 +1,32 @@
 {
   "name": "qatar-edu-monitor",
-  "version": "1.0.0",
-  "description": "",
+  "version": "2.0.0",
+  "description": "Modular Qatar Education LMS CLI monitor with sanitized logging and Arabic Markdown reports",
   "type": "module",
-  "main": "index.js",
-  "scripts": {
-    "monitor": "tsx src/monitor.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "main": "dist/src/cli.js",
+  "bin": {
+    "qedu": "dist/src/cli.js"
   },
-  "keywords": [],
+  "scripts": {
+    "cli": "tsx src/cli.ts",
+    "monitor": "tsx src/cli.ts monitor",
+    "assignments:list": "tsx src/cli.ts assignments list",
+    "assignments:due": "tsx src/cli.ts assignments due",
+    "lessons:list": "tsx src/cli.ts lessons list",
+    "quiz:inspect": "tsx src/cli.ts quiz inspect",
+    "quiz:scan": "tsx src/cli.ts quiz scan",
+    "quiz:draft": "tsx src/cli.ts quiz draft",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test tests/*.test.ts",
+    "build": "tsc"
+  },
+  "keywords": [
+    "lms",
+    "qatar-education",
+    "cheerio",
+    "typescript",
+    "cli"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
