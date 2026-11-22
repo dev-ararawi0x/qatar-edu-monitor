@@ -1,4 +1,4 @@
-export function extractQueryParam(href: string, key: string, baseUrl = "https://qeducation.edu.gov.qa"): string | null {
+export function extractQueryParam(href: string, key: string, baseUrl = "https://example.com"): string | null {
   try {
     const url = new URL(href, baseUrl);
     return url.searchParams.get(key);
@@ -28,7 +28,7 @@ export function isQuizFinishUrl(pathOrUrl: string): boolean {
   try {
     const normalized = pathOrUrl.startsWith("http")
       ? new URL(pathOrUrl)
-      : new URL(pathOrUrl, "https://qeducation.edu.gov.qa");
+      : new URL(pathOrUrl, "https://example.com");
     return normalized.pathname.includes("/student_take_quiz_assignment/finish/");
   } catch {
     return pathOrUrl.includes("/student_take_quiz_assignment/finish/");
@@ -63,7 +63,7 @@ export function buildQuizDisplayUrl(
   quizId: string | number,
   part: number,
   resultsId: string | number,
-  baseUrl = "https://qeducation.edu.gov.qa",
+  baseUrl: string,
 ): string {
   return `${baseUrl}/student_take_quiz_assignment/display/${quizId}?part=${part}&results=${resultsId}`;
 }
@@ -71,7 +71,7 @@ export function buildQuizDisplayUrl(
 export function buildQuizPauseUrl(
   quizId: string | number,
   resultsId: string | number,
-  baseUrl = "https://qeducation.edu.gov.qa",
+  baseUrl: string,
 ): string {
   return `${baseUrl}/student_take_quiz_assignment/pause/${quizId}?results=${resultsId}`;
 }

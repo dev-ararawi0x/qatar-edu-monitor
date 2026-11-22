@@ -27,15 +27,15 @@ It provides:
 ```bash
 # Unified CLI entrypoint
 npx tsx src/cli.ts --help
-npx tsx src/cli.ts assignments list --help
+npx tsx src/cli.ts assignments --help
 npx tsx src/cli.ts quiz --help
 
-# Shortcut npm scripts
-npm run assignments:list
-npm run assignments:due
-npm run lessons:list
+# Shortcut npm scripts (pass --class-id <id> or --url <url> as needed)
+npm run assignments:list -- --class-id <your-class-id>
+npm run assignments:due -- --class-id <your-class-id>
+npm run lessons:list -- --class-id <your-class-id>
 npm run quiz:inspect -- <url-or-id>
-npm run quiz:scan
+npm run quiz:scan -- --class-id <your-class-id>
 npm run quiz:draft -- <display-url>
 npm run monitor
 

@@ -17,11 +17,15 @@ Usage:
   npx tsx src/cli.ts <command> [subcommand] [options]
 
 Commands:
-  assignments list [options]       List all assignments for a class (GET only)
-  assignments due [options]        List due assignments / quizzes for a class (GET only)
-  lessons list [options]           List lessons and sections for a class (GET only)
+  assignments list --class-id <id> | --url <url> [options]
+                                   List all assignments for a class (GET only)
+  assignments due --class-id <id> | --url <url> [options]
+                                   List due assignments / quizzes for a class (GET only)
+  lessons list --class-id <id> | --url <url> [options]
+                                   List lessons and sections for a class (GET only)
   quiz inspect <url-or-id> [opts]  Inspect quiz questions & details read-only (GET only)
-  quiz scan [options]              Scan due quizzes and inspect open/resumed attempts (GET only)
+  quiz scan --class-id <id> | --url <url> [options]
+                                   Scan due quizzes and inspect open/resumed attempts (GET only)
   quiz draft <display-url> [opts]  Preview or save quiz drafts + pause (Dry-run by default, /finish BLOCKED)
   monitor [urls...] [options]      Inspect HTTP responses & auto-detect LMS entities (GET only)
 
@@ -43,11 +47,15 @@ function printSubcommandHelp(cmd: string) {
   switch (cmd) {
     case "assignments":
       console.log(`
-Usage: npx tsx src/cli.ts assignments <list|due> [options]
+Usage:
+  npx tsx src/cli.ts assignments list --class-id <id> [options]
+  npx tsx src/cli.ts assignments list --url <fullUrl> [options]
+  npx tsx src/cli.ts assignments due --class-id <id> [options]
+  npx tsx src/cli.ts assignments due --url <fullUrl> [options]
 
 Options:
-  --class-id <id>    Class / section ID (default: LMS_CLASS_ID env or 614062)
-  --url <url>        Custom assignments URL
+  --class-id <id>    Class / section ID (required unless --url is provided or LMS_CLASS_ID is set in .env)
+  --url <url>        Custom full assignments URL (overrides --class-id)
   --no-report        Skip writing Markdown report
   --quiet            Suppress verbose HTTP request banners
   --help, -h         Show this help
@@ -55,11 +63,13 @@ Options:
       break;
     case "lessons":
       console.log(`
-Usage: npx tsx src/cli.ts lessons list [options]
+Usage:
+  npx tsx src/cli.ts lessons list --class-id <id> [options]
+  npx tsx src/cli.ts lessons list --url <fullUrl> [options]
 
 Options:
-  --class-id <id>    Class / section ID (default: LMS_CLASS_ID env or 614062)
-  --url <url>        Custom lessons URL
+  --class-id <id>    Class / section ID (required unless --url is provided or LMS_CLASS_ID is set in .env)
+  --url <url>        Custom full lessons URL (overrides --class-id)
   --no-report        Skip writing Markdown report
   --quiet            Suppress verbose HTTP request banners
   --help, -h         Show this help
@@ -69,7 +79,8 @@ Options:
       console.log(`
 Usage:
   npx tsx src/cli.ts quiz inspect <showUrl|displayUrl|quizId> [options]
-  npx tsx src/cli.ts quiz scan [options]
+  npx tsx src/cli.ts quiz scan --class-id <id> [options]
+  npx tsx src/cli.ts quiz scan --url <fullUrl> [options]
   npx tsx src/cli.ts quiz draft <displayUrl> [options]
 
 quiz inspect options:
@@ -79,8 +90,8 @@ quiz inspect options:
   --quiet            Suppress verbose HTTP request banners
 
 quiz scan options:
-  --class-id <id>    Class / section ID (default: LMS_CLASS_ID env or 614062)
-  --url <url>        Custom due assignments URL
+  --class-id <id>    Class / section ID (required unless --url is provided or LMS_CLASS_ID is set in .env)
+  --url <url>        Custom full due assignments URL (overrides --class-id)
   --start-new        Opt-in to inspect newly started attempts (GET only)
   --no-report        Skip writing Markdown report
   --quiet            Suppress verbose HTTP request banners
@@ -96,7 +107,8 @@ quiz draft options:
       break;
     case "monitor":
       console.log(`
-Usage: npx tsx src/cli.ts monitor [url1 url2 ...] [options]
+Usage:
+  npx tsx src/cli.ts monitor [url1 url2 ...] [options]
 
 Options:
   --selector <css>   Custom CSS selector for DOM extraction (default: "#mainContent a, h1, h2, li")

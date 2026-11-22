@@ -370,6 +370,13 @@ export async function runQuizScanCommand(
 ): Promise<CommandResult> {
   const { classId, url: customUrl, startNew = false, noReport } = options;
   const effectiveClassId = classId || ctx.defaultClassId;
+
+  if (!customUrl && !effectiveClassId) {
+    throw new Error(
+      "[Error] Missing class ID. Provide --class-id <id>, set LMS_CLASS_ID in .env, or pass --url <fullUrl>.",
+    );
+  }
+
   const dueUrl =
     customUrl || buildAssignmentsDueUrl(ctx.baseUrl, effectiveClassId);
 

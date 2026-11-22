@@ -5,7 +5,7 @@ export function cleanText(text: string): string {
 export function extractQueryParam(
   href: string,
   key: string,
-  baseUrl = "https://qeducation.edu.gov.qa",
+  baseUrl = "https://example.com",
 ): string | null {
   try {
     const url = new URL(href, baseUrl);

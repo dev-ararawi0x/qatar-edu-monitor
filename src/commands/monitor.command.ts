@@ -17,10 +17,10 @@ export async function runMonitorCommand(
   options: MonitorCommandOptions,
 ): Promise<CommandResult> {
   const { urls = [], selector, noReport } = options;
-  const targets =
-    urls.length > 0
-      ? urls
-      : [`${ctx.baseUrl}/student_assignments/list/${ctx.defaultClassId}`];
+  const defaultTarget = ctx.defaultClassId
+    ? `${ctx.baseUrl}/student_assignments/list/${ctx.defaultClassId}`
+    : `${ctx.baseUrl}/user_dashboard`;
+  const targets = urls.length > 0 ? urls : [defaultTarget];
 
   const client = new LmsHttpClient(ctx.baseUrl, ctx.initialCookie, ctx.quiet);
   const inspections: ReturnType<typeof createGenericPageInspection>[] = [];

@@ -22,6 +22,13 @@ export async function runAssignmentsCommand(
 ): Promise<CommandResult> {
   const { mode, classId, url: customUrl, noReport } = options;
   const effectiveClassId = classId || ctx.defaultClassId;
+
+  if (!customUrl && !effectiveClassId) {
+    throw new Error(
+      "[Error] Missing class ID. Provide --class-id <id>, set LMS_CLASS_ID in .env, or pass --url <fullUrl>.",
+    );
+  }
+
   const targetUrl =
     customUrl ||
     (mode === "due"

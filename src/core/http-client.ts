@@ -40,7 +40,7 @@ export class LmsHttpClient {
   private readonly quiet: boolean;
 
   constructor(
-    baseUrl = "https://qeducation.edu.gov.qa",
+    baseUrl: string,
     initialCookie = "VALUES",
     quiet = false,
   ) {

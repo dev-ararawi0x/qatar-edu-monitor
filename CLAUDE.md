@@ -20,12 +20,12 @@ Project guide and operational rules for Claude and AI coding assistants.
 npx tsx src/cli.ts --help
 npx tsx src/cli.ts quiz --help
 
-# Read-Only Commands (GET only)
-npx tsx src/cli.ts assignments list
-npx tsx src/cli.ts assignments due
-npx tsx src/cli.ts lessons list
+# Read-Only Commands (GET only; pass --class-id <id> or --url <url> for class-scoped commands)
+npx tsx src/cli.ts assignments list --class-id <your-class-id>
+npx tsx src/cli.ts assignments due --class-id <your-class-id>
+npx tsx src/cli.ts lessons list --class-id <your-class-id>
 npx tsx src/cli.ts quiz inspect <showUrl|displayUrl|quizId>
-npx tsx src/cli.ts quiz scan
+npx tsx src/cli.ts quiz scan --class-id <your-class-id>
 npx tsx src/cli.ts monitor [urls...]
 
 # Draft Saving (Dry-run by default; pass --apply to execute draft + pause)

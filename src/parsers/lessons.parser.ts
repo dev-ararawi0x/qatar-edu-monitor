@@ -4,7 +4,7 @@ import { cleanText, extractQueryParam } from "./shared.js";
 
 export function parseLessonsHtml(
   html: string,
-  fallbackClassId = "614062",
+  fallbackClassId = "",
 ): ParsedLesson[] {
   const $ = cheerio.load(html);
   const lessonsMap = new Map<string, ParsedLesson>();

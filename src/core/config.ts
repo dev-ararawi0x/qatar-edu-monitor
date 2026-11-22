@@ -11,7 +11,7 @@ export interface AppConfig {
 
 export function loadAppConfig(): AppConfig {
   const baseUrl = (process.env.LMS_BASE_URL || "https://qeducation.edu.gov.qa").replace(/\/$/, "");
-  const defaultClassId = process.env.LMS_CLASS_ID || "614062";
+  const defaultClassId = process.env.LMS_CLASS_ID || "";
   const initialCookie = process.env.LMS_COOKIE || "VALUES";
   const reportsDir = process.env.REPORTS_DIR
     ? path.resolve(process.env.REPORTS_DIR)
