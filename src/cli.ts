@@ -111,6 +111,7 @@ quiz draft options:
 quiz solve options:
   --provider <name>  LLM provider: gemini | openai | anthropic | mock (defaults to LLM_PROVIDER)
   --model <name>     Model override (defaults to LLM_MODEL or provider default)
+  --fallback-models  Comma-separated fallback models on 503/429 spikes (e.g. gemini-2.5-flash-lite,gemini-2.0-flash)
   --lang <mode>      Answer language: auto | ar | en (default: auto based on subject & question)
   --subject <hint>   Optional subject hint (e.g. "English Language", "الفيزياء")
   --attach <p=path>  Attach local file for part p (repeatable, e.g. --attach 3=./solution.pdf)
@@ -392,6 +393,7 @@ async function main() {
         options: {
           provider: { type: "string" },
           model: { type: "string" },
+          "fallback-models": { type: "string" },
           lang: { type: "string", default: "auto" },
           subject: { type: "string" },
           attach: { type: "string", multiple: true },
@@ -439,6 +441,9 @@ async function main() {
         targetOrUrl,
         ...(values.provider ? { provider: values.provider } : {}),
         ...(values.model ? { model: values.model } : {}),
+        ...(values["fallback-models"]
+          ? { fallbackModels: values["fallback-models"] }
+          : {}),
         lang: rawLang as LanguagePreference,
         ...(values.subject ? { subject: values.subject } : {}),
         ...(values.attach ? { attachments: values.attach } : {}),

@@ -383,3 +383,91 @@ test("LLM provider adapters format requests, pass multimodal images, retry on va
   });
   assert.equal(anthropicResult.kind, "single_choice");
 });
+
+test("GeminiLlmAdapter retries on HTTP 503 high-demand spikes and falls back to secondary models automatically", async () => {
+  const questionScreen = parseQuizScreen(`
+    <form id="question_form" action="/next/1">
+      <div class="materialStyle"><p>What is 3 * 3?</p></div>
+      <input type="radio" id="c1" name="answer" value="6"><label for="c1">6</label>
+      <input type="radio" id="c2" name="answer" value="9"><label for="c2">9</label>
+    </form>
+  `);
+  assert.equal(questionScreen.stage, "question");
+  if (questionScreen.stage !== "question") return;
+
+  const calledUrls: string[] = [];
+
+  const geminiAdapter = new GeminiLlmAdapter(
+    {
+      provider: "gemini",
+      model: "gemini-2.5-flash",
+      apiKey: "AIzaSecretGeminiKey",
+      maxHttpRetries: 1,
+      retryBaseDelayMs: 5,
+      quiet: true,
+    },
+    async (url) => {
+      const urlStr = String(url);
+      calledUrls.push(urlStr);
+
+      // Simulate persistent 503 UNAVAILABLE on gemini-2.5-flash
+      if (urlStr.includes("gemini-2.5-flash:")) {
+        return new Response(
+          JSON.stringify({
+            error: {
+              code: 503,
+              message: "This model is currently experiencing high demand.",
+              status: "UNAVAILABLE",
+            },
+          }),
+          { status: 503 },
+        );
+      }
+
+      // Fallback model gemini-2.5-flash-lite succeeds!
+      return new Response(
+        JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    text: '{"kind":"single_choice","selectedValue":"9","language":"en","confidence":0.95,"reasoning":"Fallback model solved 3*3=9"}',
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+        { status: 200 },
+      );
+    },
+  );
+
+  // Part 1: tries gemini-2.5-flash (initial + 1 retry = 2 calls), then falls back to gemini-2.5-flash-lite (1 call)
+  const part1 = await geminiAdapter.solveQuestion({
+    part: 1,
+    totalParts: 2,
+    screen: questionScreen,
+    targetLanguage: "en",
+  });
+  assert.equal(part1.kind, "single_choice");
+  if (part1.kind === "single_choice") {
+    assert.equal(part1.selectedValue, "9");
+  }
+  assert.equal(calledUrls.length, 3);
+  assert.ok(calledUrls[0]?.includes("gemini-2.5-flash:"));
+  assert.ok(calledUrls[1]?.includes("gemini-2.5-flash:"));
+  assert.ok(calledUrls[2]?.includes("gemini-2.5-flash-lite:"));
+
+  // Part 2: remembers gemini-2.5-flash-lite as active model so it succeeds in 1 immediate request!
+  const part2 = await geminiAdapter.solveQuestion({
+    part: 2,
+    totalParts: 2,
+    screen: questionScreen,
+    targetLanguage: "en",
+  });
+  assert.equal(part2.kind, "single_choice");
+  assert.equal(calledUrls.length, 4);
+  assert.ok(calledUrls[3]?.includes("gemini-2.5-flash-lite:"));
+});

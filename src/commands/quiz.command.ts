@@ -8,7 +8,12 @@ import type {
   ParsedAssignment,
   QuizDraftAttemptResult,
 } from "../types/index.js";
-import { getDefaultModelForProvider, normalizeProviderName } from "../core/config.js";
+import {
+  getDefaultFallbackModels,
+  getDefaultModelForProvider,
+  normalizeProviderName,
+  parseFallbackModelsList,
+} from "../core/config.js";
 import { LmsHttpClient } from "../core/http-client.js";
 import {
   buildAssignmentsDueUrl,
@@ -563,6 +568,7 @@ export interface QuizSolveCommandOptions {
   targetOrUrl: string;
   provider?: string;
   model?: string;
+  fallbackModels?: string;
   lang?: LanguagePreference;
   subject?: string;
   attachments?: string[];
@@ -582,6 +588,7 @@ export async function runQuizSolveCommand(
     targetOrUrl,
     provider: optProvider,
     model: optModel,
+    fallbackModels: optFallbackModels,
     lang = "auto",
     subject,
     attachments = [],
@@ -607,11 +614,21 @@ export async function runQuizSolveCommand(
       ? getDefaultModelForProvider(resolvedProvider)
       : baseLlm.model);
 
+  const resolvedFallbacks =
+    parseFallbackModelsList(optFallbackModels) ??
+    (resolvedProvider !== baseLlm.provider || resolvedModel !== baseLlm.model
+      ? getDefaultFallbackModels(resolvedProvider, resolvedModel)
+      : baseLlm.fallbackModels);
+
   const llmConfig: LlmProviderConfig = {
     provider: resolvedProvider,
     model: resolvedModel,
     apiKey: baseLlm.apiKey,
+    quiet: ctx.quiet,
     ...(baseLlm.baseUrl ? { baseUrl: baseLlm.baseUrl } : {}),
+    ...(resolvedFallbacks && resolvedFallbacks.length > 0
+      ? { fallbackModels: resolvedFallbacks }
+      : {}),
   };
 
   const llmProvider = createLlmProvider(llmConfig);

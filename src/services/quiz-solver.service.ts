@@ -249,108 +249,135 @@ export async function runQuizSolverWorkflow(
   let currentPart = initConfig.part ?? 1;
   let latestToken: string | null = null;
 
-  for (let guard = 0; guard <= totalParts + 1; guard++) {
-    if (currentScreen.stage === "summary") {
-      result.reachedSummary = true;
-      result.summaryItems = currentScreen.summaryItems;
-      if (currentScreen.finishAction) {
-        result.finishAction = currentScreen.finishAction;
-      }
-      latestToken = currentScreen.authenticityToken || latestToken;
+  try {
+    for (let guard = 0; guard <= totalParts + 1; guard++) {
+      if (currentScreen.stage === "summary") {
+        result.reachedSummary = true;
+        result.summaryItems = currentScreen.summaryItems;
+        if (currentScreen.finishAction) {
+          result.finishAction = currentScreen.finishAction;
+        }
+        latestToken = currentScreen.authenticityToken || latestToken;
 
-      const verification = verifySummaryScreenCompleteness(
-        currentScreen.summaryItems,
-        result.steps.length || totalParts,
+        const verification = verifySummaryScreenCompleteness(
+          currentScreen.summaryItems,
+          result.steps.length || totalParts,
+        );
+        result.summaryVerified = verification.verified;
+        result.warnings.push(...verification.warnings);
+
+        if (!quiet) {
+          console.log(
+            `\n[Summary Reached] Verified=${verification.verified} (${currentScreen.summaryItems.length} items recorded).`,
+          );
+        }
+        break;
+      }
+
+      const questionScreen = currentScreen;
+      result.questions.push({
+        part: currentPart,
+        totalParts,
+        screen: questionScreen,
+      });
+
+      latestToken = questionScreen.hiddenFields["authenticity_token"] || latestToken;
+
+      const images =
+        questionScreen.imageUrls.length > 0
+          ? await fetchQuestionImagesInline(client, questionScreen, displayUrl)
+          : [];
+
+      const targetLanguage = detectAnswerLanguage({
+        preference: languagePreference,
+        ...(subjectHint ? { subjectHint } : {}),
+        ...(quizTitle ? { quizTitle } : {}),
+        ...(lessonTitle ? { lessonTitle } : {}),
+        screen: questionScreen,
+      });
+
+      const solvedAnswer = await llmProvider.solveQuestion({
+        part: currentPart,
+        totalParts,
+        screen: questionScreen,
+        ...(quizTitle ? { quizTitle } : {}),
+        ...(subjectHint ? { subjectHint } : {}),
+        ...(lessonTitle ? { lessonTitle } : {}),
+        targetLanguage,
+        ...(images.length > 0 ? { images } : {}),
+      });
+
+      const mapped = mapAnswerToFormPayload(
+        questionScreen,
+        solvedAnswer,
+        attachmentsByPart?.get(currentPart),
       );
-      result.summaryVerified = verification.verified;
-      result.warnings.push(...verification.warnings);
+
+      const postRes = await client.request({
+        method: "POST",
+        pathOrUrl: questionScreen.action,
+        referer: displayUrl,
+        isAjax: true,
+        ...(latestToken ? { csrfHeaderToken: latestToken } : {}),
+        formFields: mapped.formFields,
+        ...(mapped.files.length > 0 ? { files: mapped.files } : {}),
+        asMultipart: mapped.asMultipart,
+      });
+
+      result.steps.push({
+        part: currentPart,
+        questionHeader: questionScreen.questionHeader,
+        inputType: questionScreen.inputType,
+        language: targetLanguage,
+        solvedAnswer,
+        formattedSummary: mapped.formattedSummary,
+        action: questionScreen.action,
+        formFieldsSent: mapped.sanitizedFieldsPreview,
+        ...(mapped.sanitizedFilesPreview.length > 0
+          ? { attachedFiles: mapped.sanitizedFilesPreview }
+          : {}),
+        status: postRes.status,
+      });
 
       if (!quiet) {
         console.log(
-          `\n[Summary Reached] Verified=${verification.verified} (${currentScreen.summaryItems.length} items recorded).`,
+          `[Saved Part ${currentPart}/${totalParts}] HTTP ${postRes.status} (${targetLanguage.toUpperCase()} | ${questionScreen.inputType}) -> ${mapped.formattedSummary}`,
         );
       }
-      break;
+
+      if (postRes.status !== 200) {
+        result.warnings.push(`توقف الإرسال عند الجزء ${currentPart} بسبب رمز الاستجابة ${postRes.status}.`);
+        break;
+      }
+
+      currentScreen = parseQuizScreen(postRes.body);
+      currentPart += 1;
     }
-
-    const questionScreen = currentScreen;
-    result.questions.push({
-      part: currentPart,
-      totalParts,
-      screen: questionScreen,
-    });
-
-    latestToken = questionScreen.hiddenFields["authenticity_token"] || latestToken;
-
-    const images =
-      questionScreen.imageUrls.length > 0
-        ? await fetchQuestionImagesInline(client, questionScreen, displayUrl)
-        : [];
-
-    const targetLanguage = detectAnswerLanguage({
-      preference: languagePreference,
-      ...(subjectHint ? { subjectHint } : {}),
-      ...(quizTitle ? { quizTitle } : {}),
-      ...(lessonTitle ? { lessonTitle } : {}),
-      screen: questionScreen,
-    });
-
-    const solvedAnswer = await llmProvider.solveQuestion({
-      part: currentPart,
-      totalParts,
-      screen: questionScreen,
-      ...(quizTitle ? { quizTitle } : {}),
-      ...(subjectHint ? { subjectHint } : {}),
-      ...(lessonTitle ? { lessonTitle } : {}),
-      targetLanguage,
-      ...(images.length > 0 ? { images } : {}),
-    });
-
-    const mapped = mapAnswerToFormPayload(
-      questionScreen,
-      solvedAnswer,
-      attachmentsByPart?.get(currentPart),
-    );
-
-    const postRes = await client.request({
-      method: "POST",
-      pathOrUrl: questionScreen.action,
-      referer: displayUrl,
-      isAjax: true,
-      ...(latestToken ? { csrfHeaderToken: latestToken } : {}),
-      formFields: mapped.formFields,
-      ...(mapped.files.length > 0 ? { files: mapped.files } : {}),
-      asMultipart: mapped.asMultipart,
-    });
-
-    result.steps.push({
-      part: currentPart,
-      questionHeader: questionScreen.questionHeader,
-      inputType: questionScreen.inputType,
-      language: targetLanguage,
-      solvedAnswer,
-      formattedSummary: mapped.formattedSummary,
-      action: questionScreen.action,
-      formFieldsSent: mapped.sanitizedFieldsPreview,
-      ...(mapped.sanitizedFilesPreview.length > 0
-        ? { attachedFiles: mapped.sanitizedFilesPreview }
-        : {}),
-      status: postRes.status,
-    });
-
-    if (!quiet) {
-      console.log(
-        `[Saved Part ${currentPart}/${totalParts}] HTTP ${postRes.status} (${targetLanguage.toUpperCase()} | ${questionScreen.inputType}) -> ${mapped.formattedSummary}`,
-      );
+  } catch (err) {
+    if (!noPause && result.steps.length > 0) {
+      try {
+        const pausePath = buildQuizPauseUrl(quizId, resultsId, client.baseUrl);
+        await client.request({
+          method: "POST",
+          pathOrUrl: pausePath,
+          referer: displayUrl,
+          isAjax: true,
+          ...(latestToken ? { csrfHeaderToken: latestToken } : {}),
+          formFields: {
+            utf8: "✓",
+            ...(latestToken ? { authenticity_token: latestToken } : {}),
+          },
+        });
+        if (!quiet) {
+          console.warn(
+            "[Emergency Pause] Paused quiz attempt safely via /pause/ after mid-run error.",
+          );
+        }
+      } catch {
+        // Ignore emergency pause error so original error surfaces clearly
+      }
     }
-
-    if (postRes.status !== 200) {
-      result.warnings.push(`توقف الإرسال عند الجزء ${currentPart} بسبب رمز الاستجابة ${postRes.status}.`);
-      break;
-    }
-
-    currentScreen = parseQuizScreen(postRes.body);
-    currentPart += 1;
+    throw err;
   }
 
   if (submit) {

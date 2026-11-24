@@ -11,12 +11,21 @@ import {
   parseRawLlmJson,
   validateAndNormalizeLlmAnswer,
 } from "../answer-validator.js";
+import {
+  fetchWithTransientRetry,
+  isFallbackEligibleStatus,
+} from "../http-retry.js";
 
 export class AnthropicLlmAdapter implements LlmProvider {
   public readonly name = "anthropic" as const;
   public readonly model: string;
+  private activeModel: string;
+  private readonly fallbackModels: string[];
   private readonly apiKey: string;
   private readonly baseUrl: string;
+  private readonly maxHttpRetries: number;
+  private readonly retryBaseDelayMs: number;
+  private readonly quiet: boolean;
   private readonly fetchImpl: typeof fetch;
 
   constructor(
@@ -24,15 +33,26 @@ export class AnthropicLlmAdapter implements LlmProvider {
     fetchImpl: typeof fetch = globalThis.fetch,
   ) {
     this.model = config.model;
+    this.activeModel = config.model;
+    this.fallbackModels = Array.from(
+      new Set((config.fallbackModels ?? []).filter((m) => m && m !== config.model)),
+    );
     this.apiKey = config.apiKey;
     this.baseUrl = (config.baseUrl || "https://api.anthropic.com").replace(/\/$/, "");
+    this.maxHttpRetries = config.maxHttpRetries ?? 2;
+    this.retryBaseDelayMs = config.retryBaseDelayMs ?? 1200;
+    this.quiet = config.quiet ?? false;
     this.fetchImpl = fetchImpl;
+  }
+
+  private getOrderedModels(): string[] {
+    return Array.from(new Set([this.activeModel, this.model, ...this.fallbackModels]));
   }
 
   async solveQuestion(input: LlmQuestionInput): Promise<LlmSolvedAnswer> {
     let feedback: string | undefined = input.validationFeedback;
 
-    for (let attempt = 0; attempt < 2; attempt++) {
+    for (let validationAttempt = 0; validationAttempt < 2; validationAttempt++) {
       const { systemInstruction, userPrompt } = buildQuestionPrompts({
         ...input,
         ...(feedback ? { validationFeedback: feedback } : {}),
@@ -54,31 +74,76 @@ export class AnthropicLlmAdapter implements LlmProvider {
       contentBlocks.push({ type: "text", text: userPrompt });
 
       const url = `${this.baseUrl}/v1/messages`;
-      const res = await this.fetchImpl(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": this.apiKey,
-          "anthropic-version": "2023-06-01",
-        },
-        body: JSON.stringify({
-          model: this.model,
-          max_tokens: 2048,
-          temperature: 0.2,
-          system: systemInstruction,
-          messages: [
-            {
-              role: "user",
-              content: contentBlocks,
-            },
-          ],
-        }),
-      });
+      const candidateModels = this.getOrderedModels();
+      let rawBody = "";
+      let succeededModel: string | null = null;
+      let lastStatus = 0;
 
-      const rawBody = await res.text();
-      if (!res.ok) {
+      for (let mIdx = 0; mIdx < candidateModels.length; mIdx++) {
+        const candidateModel = candidateModels[mIdx]!;
+        const res = await fetchWithTransientRetry(
+          this.fetchImpl,
+          url,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-api-key": this.apiKey,
+              "anthropic-version": "2023-06-01",
+            },
+            body: JSON.stringify({
+              model: candidateModel,
+              max_tokens: 2048,
+              temperature: 0.2,
+              system: systemInstruction,
+              messages: [
+                {
+                  role: "user",
+                  content: contentBlocks,
+                },
+              ],
+            }),
+          },
+          {
+            maxRetries: this.maxHttpRetries,
+            baseDelayMs: this.retryBaseDelayMs,
+            onRetry: ({ attempt, maxRetries, status, delayMs }) => {
+              if (!this.quiet) {
+                console.warn(
+                  `[AnthropicAdapter] Transient ${status ? `HTTP ${status}` : "network error"} on "${candidateModel}" — retry ${attempt}/${maxRetries} in ${delayMs}ms...`,
+                );
+              }
+            },
+          },
+        );
+
+        rawBody = await res.text();
+        lastStatus = res.status;
+
+        if (res.ok) {
+          succeededModel = candidateModel;
+          this.activeModel = candidateModel;
+          break;
+        }
+
+        const nextModel = candidateModels[mIdx + 1];
+        if (nextModel && isFallbackEligibleStatus(res.status)) {
+          if (!this.quiet) {
+            console.warn(
+              `[AnthropicAdapter] Model "${candidateModel}" unavailable (HTTP ${res.status}); falling back to "${nextModel}"...`,
+            );
+          }
+          continue;
+        }
+
         throw new Error(
-          `[AnthropicAdapter Error] HTTP ${res.status}: ${sanitizeText(rawBody).slice(0, 300)}`,
+          `[AnthropicAdapter Error] HTTP ${res.status} (${candidateModel}): ${sanitizeText(rawBody).slice(0, 300)}`,
+        );
+      }
+
+      if (!succeededModel) {
+        throw new Error(
+          `[AnthropicAdapter Error] All candidate models [${candidateModels.join(", ")}] failed (last HTTP ${lastStatus}): ${sanitizeText(rawBody).slice(0, 300)}`,
         );
       }
 
@@ -95,7 +160,7 @@ export class AnthropicLlmAdapter implements LlmProvider {
         const jsonObj = parseRawLlmJson(modelText);
         return validateAndNormalizeLlmAnswer(jsonObj, input.screen, input.targetLanguage);
       } catch (err) {
-        if (err instanceof AnswerValidationError && attempt === 0) {
+        if (err instanceof AnswerValidationError && validationAttempt === 0) {
           feedback = err.message;
           continue;
         }

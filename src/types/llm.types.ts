@@ -11,6 +11,10 @@ export interface LlmProviderConfig {
   model: string;
   apiKey: string;
   baseUrl?: string;
+  fallbackModels?: string[];
+  maxHttpRetries?: number;
+  retryBaseDelayMs?: number;
+  quiet?: boolean;
 }
 
 export interface QuestionImageInline {

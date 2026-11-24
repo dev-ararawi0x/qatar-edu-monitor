@@ -1,6 +1,7 @@
 export * from "./language-detector.js";
 export * from "./prompt-builder.js";
 export * from "./answer-validator.js";
+export * from "./http-retry.js";
 export * from "./registry.js";
 export * from "./adapters/gemini.adapter.js";
 export * from "./adapters/openai.adapter.js";

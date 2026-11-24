@@ -27,6 +27,30 @@ export function getDefaultModelForProvider(provider: LlmProviderName): string {
   }
 }
 
+export function getDefaultFallbackModels(
+  provider: LlmProviderName,
+  primaryModel: string,
+): string[] {
+  if (provider === "gemini") {
+    const candidates = [
+      "gemini-2.5-flash",
+      "gemini-2.5-flash-lite",
+      "gemini-2.0-flash",
+    ];
+    return candidates.filter((m) => m !== primaryModel);
+  }
+  return [];
+}
+
+export function parseFallbackModelsList(raw?: string): string[] | undefined {
+  if (!raw || !raw.trim()) return undefined;
+  const items = raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return items.length > 0 ? items : undefined;
+}
+
 export function normalizeProviderName(raw?: string): LlmProviderName {
   const cleaned = (raw || "gemini").trim().toLowerCase();
   if (
@@ -63,6 +87,9 @@ export function loadAppConfig(): AppConfig {
           : undefined) ||
     "VALUES";
   const llmBaseUrl = (process.env.LLM_BASE_URL || "").trim();
+  const fallbackModels =
+    parseFallbackModelsList(process.env.LLM_FALLBACK_MODELS) ??
+    getDefaultFallbackModels(provider, model);
 
   return {
     baseUrl,
@@ -74,6 +101,7 @@ export function loadAppConfig(): AppConfig {
       model,
       apiKey,
       ...(llmBaseUrl ? { baseUrl: llmBaseUrl.replace(/\/$/, "") } : {}),
+      ...(fallbackModels.length > 0 ? { fallbackModels } : {}),
     },
   };
 }
@@ -99,20 +127,28 @@ export function buildCommandContext(
       : config.llm.model);
   const apiKey = overrides?.llm?.apiKey ?? config.llm.apiKey;
   const llmBaseUrl = overrides?.llm?.baseUrl ?? config.llm.baseUrl;
+  const fallbackModels =
+    overrides?.llm?.fallbackModels ??
+    (provider !== config.llm.provider || model !== config.llm.model
+      ? getDefaultFallbackModels(provider, model)
+      : config.llm.fallbackModels);
+  const quiet = overrides?.quiet ?? false;
 
   return {
     baseUrl: config.baseUrl,
     defaultClassId: config.defaultClassId,
     initialCookie: config.initialCookie,
     reportsDir,
-    quiet: overrides?.quiet ?? false,
+    quiet,
     writeReport: overrides?.writeReport ?? true,
     ...(overrides?.outDir ? { outDir: path.resolve(overrides.outDir) } : {}),
     llm: {
       provider,
       model,
       apiKey,
+      quiet,
       ...(llmBaseUrl ? { baseUrl: llmBaseUrl } : {}),
+      ...(fallbackModels && fallbackModels.length > 0 ? { fallbackModels } : {}),
     },
   };
 }
