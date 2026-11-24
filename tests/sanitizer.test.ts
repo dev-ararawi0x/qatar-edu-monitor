@@ -23,8 +23,21 @@ test("maskIfSensitiveKey masks cookies, tokens, csrf, auth, secrets, passwords",
   assert.equal(maskIfSensitiveKey("Authorization", "Bearer token123"), "VALUES");
   assert.equal(maskIfSensitiveKey("session_id", "sess_987"), "VALUES");
   assert.equal(maskIfSensitiveKey("user_password", "hunter2"), "VALUES");
+  assert.equal(maskIfSensitiveKey("LLM_API_KEY", "sk-real-key-123"), "VALUES");
+  assert.equal(maskIfSensitiveKey("openai_apikey", "sk-proj-999"), "VALUES");
+  assert.equal(maskIfSensitiveKey("x-api-key", "ant-key-456"), "VALUES");
   assert.equal(maskIfSensitiveKey("answer", "42"), "42");
   assert.equal(maskIfSensitiveKey("title", "Physics Quiz"), "Physics Quiz");
+});
+
+test("sanitizeFields supports multi-value string[] checkbox fields while masking secrets", () => {
+  const output = sanitizeFields({
+    authenticity_token: "secret_tok",
+    "answer[]": ["opt_1", "opt_3"],
+  });
+  assert.ok(output);
+  assert.equal(output["authenticity_token"], "VALUES");
+  assert.equal(output["answer[]"], "opt_1, opt_3");
 });
 
 test("sanitizeFields masks sensitive form fields while preserving regular fields", () => {
@@ -99,6 +112,7 @@ test("sanitizeJsonValue masks nested tokens and cookies", () => {
     session: {
       cookie: "secret_cookie",
       token: "secret_token",
+      api_key: "sk-nested-key",
       active: true,
     },
     quiz: {
@@ -112,6 +126,7 @@ test("sanitizeJsonValue masks nested tokens and cookies", () => {
   const session = clean["session"] as Record<string, unknown>;
   assert.equal(session["cookie"], "VALUES");
   assert.equal(session["token"], "VALUES");
+  assert.equal(session["api_key"], "VALUES");
   assert.equal(session["active"], true);
   const quiz = clean["quiz"] as Record<string, unknown>;
   assert.equal(quiz["id"], 123);

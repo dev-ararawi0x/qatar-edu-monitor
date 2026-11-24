@@ -5,6 +5,7 @@ import type {
   QuizPartQuestion,
   QuizShowInfo,
   QuizDraftAttemptResult,
+  QuizSolveAttemptResult,
   SummaryItem,
   SanitizedHttpTrace,
 } from "../types/index.js";
@@ -42,13 +43,26 @@ export function renderQuestionCardMarkdown(
   const lines: string[] = [];
 
   if (screen.stage === "summary") {
-    lines.push(buildSectionHeading(3, `${titlePrefix ? `${titlePrefix} - ` : ""}شاشة الملخص النهائية (لم يتم التسليم) - الجزء ${part}`));
+    lines.push(
+      buildSectionHeading(
+        3,
+        `${titlePrefix ? `${titlePrefix} - ` : ""}شاشة الملخص النهائية (لم يتم التسليم) - الجزء ${part}`,
+      ),
+    );
     lines.push("");
-    lines.push(buildMetadataTable([
-      { label: "رابط نموذج التسليم (للعرض فقط - محظور إرسال /finish)", value: screen.finishAction || "—" },
-      { label: "رمز الحماية (authenticity_token)", value: screen.authenticityToken ? "VALUES" : "غير موجود" },
-      { label: "عدد ملخصات الإجابات", value: screen.summaryItems.length },
-    ]));
+    lines.push(
+      buildMetadataTable([
+        {
+          label: "رابط نموذج التسليم (للعرض فقط - محظور إرسال /finish)",
+          value: screen.finishAction || "—",
+        },
+        {
+          label: "رمز الحماية (authenticity_token)",
+          value: screen.authenticityToken ? "VALUES" : "غير موجود",
+        },
+        { label: "عدد ملخصات الإجابات", value: screen.summaryItems.length },
+      ]),
+    );
     lines.push("");
 
     if (screen.summaryItems.length > 0) {
@@ -57,10 +71,12 @@ export function renderQuestionCardMarkdown(
         s.promptPreview,
         s.recordedAnswer,
       ]);
-      lines.push(buildMarkdownTable(
-        ["عنوان السؤال", "نظرة عامة على نص السؤال", "الإجابة المسجلة"],
-        rows,
-      ));
+      lines.push(
+        buildMarkdownTable(
+          ["عنوان السؤال", "نظرة عامة على نص السؤال", "الإجابة المسجلة"],
+          rows,
+        ),
+      );
       lines.push("");
     }
     return lines;
@@ -74,22 +90,32 @@ export function renderQuestionCardMarkdown(
   lines.push(buildSectionHeading(3, headerTitle));
   lines.push("");
 
-  lines.push(buildMetadataTable([
-    { label: "نص السؤال / المطالبة", value: screen.promptText || "—" },
-    { label: "الدرجة / النقاط", value: screen.points || "غير محدد" },
-    { label: "نوع السؤال", value: getQuestionTypeLabelAr(screen) },
-    { label: "نمط التشفير (enctype)", value: screen.enctype.includes("multipart") ? "multipart/form-data" : "application/x-www-form-urlencoded" },
-    { label: "دعم الإدخال النصي العادي", value: screen.hasPlainTextInput ? "نعم" : "لا" },
-    { label: "دعم المحرر النصي المنسق (Rich Text)", value: screen.hasRichTextEditor ? "نعم" : "لا" },
-    { label: "دعم إرفاق / رفع الملفات", value: screen.hasFileUpload ? "نعم" : "لا" },
-    ...(screen.fileInputNames.length > 0
-      ? [{ label: "أسماء حقول رفع الملفات", value: screen.fileInputNames.join(", ") }]
-      : []),
-    { label: "رابط الإجراء (Action URL)", value: screen.action || "—" },
-    ...(screen.imageUrls.length > 0
-      ? [{ label: "روابط الصور المرفقة بالسؤال", value: screen.imageUrls.join("\n") }]
-      : []),
-  ]));
+  lines.push(
+    buildMetadataTable([
+      { label: "نص السؤال / المطالبة", value: screen.promptText || "—" },
+      { label: "الدرجة / النقاط", value: screen.points || "غير محدد" },
+      { label: "نوع السؤال", value: getQuestionTypeLabelAr(screen) },
+      {
+        label: "نمط التشفير (enctype)",
+        value: screen.enctype.includes("multipart")
+          ? "multipart/form-data"
+          : "application/x-www-form-urlencoded",
+      },
+      { label: "دعم الإدخال النصي العادي", value: screen.hasPlainTextInput ? "نعم" : "لا" },
+      {
+        label: "دعم المحرر النصي المنسق (Rich Text)",
+        value: screen.hasRichTextEditor ? "نعم" : "لا",
+      },
+      { label: "دعم إرفاق / رفع الملفات", value: screen.hasFileUpload ? "نعم" : "لا" },
+      ...(screen.fileInputNames.length > 0
+        ? [{ label: "أسماء حقول رفع الملفات", value: screen.fileInputNames.join(", ") }]
+        : []),
+      { label: "رابط الإجراء (Action URL)", value: screen.action || "—" },
+      ...(screen.imageUrls.length > 0
+        ? [{ label: "روابط الصور المرفقة بالسؤال", value: screen.imageUrls.join("\n") }]
+        : []),
+    ]),
+  );
   lines.push("");
 
   if (screen.choices.length > 0) {
@@ -101,20 +127,28 @@ export function renderQuestionCardMarkdown(
       c.value,
       c.checked ? "نعم (محدد)" : "لا",
     ]);
-    lines.push(buildMarkdownTable(
-      ["الترتيب", "نص الخيار", "القيمة (Value)", "محدد حالياً؟"],
-      choiceRows,
-    ));
+    lines.push(
+      buildMarkdownTable(
+        ["الترتيب", "نص الخيار", "القيمة (Value)", "محدد حالياً؟"],
+        choiceRows,
+      ),
+    );
     lines.push("");
   }
 
   if (screen.currentTextAnswer || Object.keys(screen.structuredAnswers).length > 0) {
     lines.push(buildSectionHeading(4, "الإجابة النصية / الحقول الحالية"));
     lines.push("");
-    const answerEntries: Array<{ label: string; value: string | number | boolean | undefined | null }> = [];
+    const answerEntries: Array<{
+      label: string;
+      value: string | number | boolean | undefined | null;
+    }> = [];
 
     if (screen.currentTextAnswer) {
-      answerEntries.push({ label: "الإجابة النصية الحالية (answer)", value: screen.currentTextAnswer });
+      answerEntries.push({
+        label: "الإجابة النصية الحالية (answer)",
+        value: screen.currentTextAnswer,
+      });
     }
 
     for (const [key, val] of Object.entries(screen.structuredAnswers)) {
@@ -125,10 +159,12 @@ export function renderQuestionCardMarkdown(
       });
     }
 
-    lines.push(buildMarkdownTable(
-      ["اسم الحقل / نوع الإجابة", "المحتوى الحالي"],
-      answerEntries.map((e) => [e.label, e.value ?? "—"]),
-    ));
+    lines.push(
+      buildMarkdownTable(
+        ["اسم الحقل / نوع الإجابة", "المحتوى الحالي"],
+        answerEntries.map((e) => [e.label, e.value ?? "—"]),
+      ),
+    );
     lines.push("");
   }
 
@@ -147,10 +183,19 @@ export function renderQuestionCardMarkdown(
         ? f.options.map((opt) => escapeMarkdownCell(sanitizeText(opt))).join("، ")
         : "—",
     ]);
-    lines.push(buildMarkdownTable(
-      ["اسم الحقل (name)", "الوسم", "النوع", "محدد؟", "القيمة الافتراضية", "الخيارات (للقوائم المنسدلة)"],
-      fieldRows,
-    ));
+    lines.push(
+      buildMarkdownTable(
+        [
+          "اسم الحقل (name)",
+          "الوسم",
+          "النوع",
+          "محدد؟",
+          "القيمة الافتراضية",
+          "الخيارات (للقوائم المنسدلة)",
+        ],
+        fieldRows,
+      ),
+    );
     lines.push("");
   }
 
@@ -208,21 +253,35 @@ export function renderQuizInspectMarkdown(input: QuizInspectReportInput): string
   lines.push(buildSectionHeading(1, "تقرير فحص اختبار إلكتروني (Quiz Inspect - للقراءة فقط GET)"));
   lines.push("");
 
-  lines.push(buildMetadataTable([
-    { label: "التاريخ والوقت", value: formatIsoTimestamp(timestamp) },
-    { label: "الرابط / المعرف المدخل", value: targetUrl },
-    ...(showUrl ? [{ label: "رابط صفحة عرض الاختبار (Show)", value: showUrl }] : []),
-    ...(displayUrl ? [{ label: "رابط صفحة الأسئلة (Display)", value: displayUrl }] : []),
-    ...(quizId ? [{ label: "معرف الاختبار (quiz_id)", value: quizId }] : []),
-    ...(resultsId ? [{ label: "معرف المحاولة (results_id)", value: resultsId }] : []),
-    { label: "وضع الأمان", value: "قراءة فقط (GET فقط - لا يتم إرسال أي POST ولا بدء محاولة جديدة إلا بـ --start-new)" },
-    { label: "استخدام --start-new", value: startNewUsed ? "نعم" : "لا (افتراضي آمن)" },
-    { label: "حالة الجلسة", value: hasSession ? "نشطة (VALUES)" : "غير نشطة / placeholder (VALUES)" },
-    { label: "عدد الأجزاء / الأسئلة المفحوصة", value: questions.length },
-    ...(initConfig?.timedQuiz !== undefined
-      ? [{ label: "اختبار مؤقت (Timed Quiz)", value: initConfig.timedQuiz ? "نعم (محمي)" : "لا" }]
-      : []),
-  ]));
+  lines.push(
+    buildMetadataTable([
+      { label: "التاريخ والوقت", value: formatIsoTimestamp(timestamp) },
+      { label: "الرابط / المعرف المدخل", value: targetUrl },
+      ...(showUrl ? [{ label: "رابط صفحة عرض الاختبار (Show)", value: showUrl }] : []),
+      ...(displayUrl ? [{ label: "رابط صفحة الأسئلة (Display)", value: displayUrl }] : []),
+      ...(quizId ? [{ label: "معرف الاختبار (quiz_id)", value: quizId }] : []),
+      ...(resultsId ? [{ label: "معرف المحاولة (results_id)", value: resultsId }] : []),
+      {
+        label: "وضع الأمان",
+        value:
+          "قراءة فقط (GET فقط - لا يتم إرسال أي POST ولا بدء محاولة جديدة إلا بـ --start-new)",
+      },
+      { label: "استخدام --start-new", value: startNewUsed ? "نعم" : "لا (افتراضي آمن)" },
+      {
+        label: "حالة الجلسة",
+        value: hasSession ? "نشطة (VALUES)" : "غير نشطة / placeholder (VALUES)",
+      },
+      { label: "عدد الأجزاء / الأسئلة المفحوصة", value: questions.length },
+      ...(initConfig?.timedQuiz !== undefined
+        ? [
+            {
+              label: "اختبار مؤقت (Timed Quiz)",
+              value: initConfig.timedQuiz ? "نعم (محمي)" : "لا",
+            },
+          ]
+        : []),
+    ]),
+  );
   lines.push("");
 
   if (note) {
@@ -233,32 +292,51 @@ export function renderQuizInspectMarkdown(input: QuizInspectReportInput): string
   if (showInfo) {
     lines.push(buildSectionHeading(2, "بيانات صفحة الاختبار (Show Page)"));
     lines.push("");
-    lines.push(buildMetadataTable([
-      { label: "عنوان الاختبار", value: showInfo.title || "—" },
-      { label: "نص زر الإجراء", value: showInfo.actionButtonText || "—" },
-      { label: "رابط زر الإجراء", value: showInfo.actionButtonHref || "—" },
-      { label: "محاولة مفتوحة مسبقاً (Resume)", value: showInfo.isResumeAttempt ? "نعم" : "لا" },
-      { label: "رمز الحماية (csrf-token)", value: showInfo.csrfToken ? "VALUES" : "غير موجود" },
-      { label: "تفاصيل الشريط الجانبي", value: showInfo.sidebarDetails.length > 0 ? showInfo.sidebarDetails.join(" | ") : "—" },
-    ]));
+    lines.push(
+      buildMetadataTable([
+        { label: "عنوان الاختبار", value: showInfo.title || "—" },
+        { label: "نص زر الإجراء", value: showInfo.actionButtonText || "—" },
+        { label: "رابط زر الإجراء", value: showInfo.actionButtonHref || "—" },
+        {
+          label: "محاولة مفتوحة مسبقاً (Resume)",
+          value: showInfo.isResumeAttempt ? "نعم" : "لا",
+        },
+        {
+          label: "رمز الحماية (csrf-token)",
+          value: showInfo.csrfToken ? "VALUES" : "غير موجود",
+        },
+        {
+          label: "تفاصيل الشريط الجانبي",
+          value:
+            showInfo.sidebarDetails.length > 0
+              ? showInfo.sidebarDetails.join(" | ")
+              : "—",
+        },
+      ]),
+    );
     lines.push("");
   }
 
   if (initConfig) {
     lines.push(buildSectionHeading(2, "إعدادات الاختبار (init_quiz)"));
     lines.push("");
-    lines.push(buildMarkdownTable(
-      ["المعرف", "القيمة"],
-      [
-        ["quiz_id", initConfig.quizId ?? "—"],
-        ["results_id", initConfig.resultsId ?? "—"],
-        ["الجزء الحالي (part)", initConfig.part ?? "—"],
-        ["إجمالي الأجزاء (parts)", initConfig.parts ?? "—"],
-        ["اختبار مؤقت (timed_quiz)", initConfig.timedQuiz ? "نعم" : "لا"],
-        ["الوقت المتبقي (time_left)", initConfig.timeLeft ?? "—"],
-        ["السماح بالاستئناف التلقائي (resume_refresh)", initConfig.resumeRefresh ? "نعم" : "لا"],
-      ],
-    ));
+    lines.push(
+      buildMarkdownTable(
+        ["المعرف", "القيمة"],
+        [
+          ["quiz_id", initConfig.quizId ?? "—"],
+          ["results_id", initConfig.resultsId ?? "—"],
+          ["الجزء الحالي (part)", initConfig.part ?? "—"],
+          ["إجمالي الأجزاء (parts)", initConfig.parts ?? "—"],
+          ["اختبار مؤقت (timed_quiz)", initConfig.timedQuiz ? "نعم" : "لا"],
+          ["الوقت المتبقي (time_left)", initConfig.timeLeft ?? "—"],
+          [
+            "السماح بالاستئناف التلقائي (resume_refresh)",
+            initConfig.resumeRefresh ? "نعم" : "لا",
+          ],
+        ],
+      ),
+    );
     lines.push("");
   }
 
@@ -278,10 +356,12 @@ export function renderQuizInspectMarkdown(input: QuizInspectReportInput): string
       s.promptPreview,
       s.recordedAnswer,
     ]);
-    lines.push(buildMarkdownTable(
-      ["عنوان السؤال", "نظرة عامة على نص السؤال", "الإجابة المسجلة"],
-      rows,
-    ));
+    lines.push(
+      buildMarkdownTable(
+        ["عنوان السؤال", "نظرة عامة على نص السؤال", "الإجابة المسجلة"],
+        rows,
+      ),
+    );
     lines.push("");
   }
 
@@ -296,10 +376,19 @@ export function renderQuizInspectMarkdown(input: QuizInspectReportInput): string
       t.kind,
       t.updatedCookieNames.length > 0 ? t.updatedCookieNames.join(", ") : "—",
     ]);
-    lines.push(buildMarkdownTable(
-      ["الطريقة", "الرابط", "الحالة", "الزمن", "النوع", "الكوكيز المحدثة (أسماء فقط)"],
-      traceRows,
-    ));
+    lines.push(
+      buildMarkdownTable(
+        [
+          "الطريقة",
+          "الرابط",
+          "الحالة",
+          "الزمن",
+          "النوع",
+          "الكوكيز المحدثة (أسماء فقط)",
+        ],
+        traceRows,
+      ),
+    );
     lines.push("");
   }
 
@@ -347,20 +436,30 @@ export function renderQuizScanMarkdown(input: QuizScanReportInput): string {
   lines.push("");
 
   const totalQuizzes = dueAssignments.filter((a) => a.kind === "quiz").length;
-  const inspectedCount = scannedQuizzes.filter((q) => !q.skippedReason && q.questions.length > 0).length;
+  const inspectedCount = scannedQuizzes.filter(
+    (q) => !q.skippedReason && q.questions.length > 0,
+  ).length;
   const skippedCount = scannedQuizzes.filter((q) => !!q.skippedReason).length;
 
-  lines.push(buildMetadataTable([
-    { label: "التاريخ والوقت", value: formatIsoTimestamp(timestamp) },
-    { label: "رابط التقييمات المستحقة", value: targetUrl },
-    { label: "وضع الأمان", value: "قراءة فقط (GET فقط)" },
-    { label: "استخدام --start-new", value: startNewUsed ? "نعم" : "لا (تم تخطي المحاولات الجديدة للحماية)" },
-    { label: "حالة الجلسة", value: hasSession ? "نشطة (VALUES)" : "غير نشطة / placeholder (VALUES)" },
-    { label: "إجمالي التقييمات المستحقة", value: dueAssignments.length },
-    { label: "إجمالي الاختبارات الإلكترونية", value: totalQuizzes },
-    { label: "الاختبارات التي تم فحص أسئلتها", value: inspectedCount },
-    { label: "الاختبارات المتخطاة / المحمية", value: skippedCount },
-  ]));
+  lines.push(
+    buildMetadataTable([
+      { label: "التاريخ والوقت", value: formatIsoTimestamp(timestamp) },
+      { label: "رابط التقييمات المستحقة", value: targetUrl },
+      { label: "وضع الأمان", value: "قراءة فقط (GET فقط)" },
+      {
+        label: "استخدام --start-new",
+        value: startNewUsed ? "نعم" : "لا (تم تخطي المحاولات الجديدة للحماية)",
+      },
+      {
+        label: "حالة الجلسة",
+        value: hasSession ? "نشطة (VALUES)" : "غير نشطة / placeholder (VALUES)",
+      },
+      { label: "إجمالي التقييمات المستحقة", value: dueAssignments.length },
+      { label: "إجمالي الاختبارات الإلكترونية", value: totalQuizzes },
+      { label: "الاختبارات التي تم فحص أسئلتها", value: inspectedCount },
+      { label: "الاختبارات المتخطاة / المحمية", value: skippedCount },
+    ]),
+  );
   lines.push("");
 
   if (dueAssignments.length > 0) {
@@ -368,14 +467,17 @@ export function renderQuizScanMarkdown(input: QuizScanReportInput): string {
     lines.push("");
     const assignRows = dueAssignments.map((a) => [
       a.title,
-      a.kind === "quiz" ? "اختبار إلكتروني (Quiz)" : a.kind === "offline" ? "تقييم ورقي / غير إلكتروني" : "أخرى",
+      a.kind === "quiz"
+        ? "اختبار إلكتروني (Quiz)"
+        : a.kind === "offline"
+          ? "تقييم ورقي / غير إلكتروني"
+          : "أخرى",
       a.assignmentId ?? "—",
       a.href,
     ]);
-    lines.push(buildMarkdownTable(
-      ["عنوان التقييم", "النوع", "المعرف", "الرابط"],
-      assignRows,
-    ));
+    lines.push(
+      buildMarkdownTable(["عنوان التقييم", "النوع", "المعرف", "الرابط"], assignRows),
+    );
     lines.push("");
   }
 
@@ -387,21 +489,31 @@ export function renderQuizScanMarkdown(input: QuizScanReportInput): string {
     lines.push("");
 
     if (quiz.showInfo) {
-      lines.push(buildMetadataTable([
-        { label: "عنوان صفحة الاختبار", value: quiz.showInfo.title || "—" },
-        { label: "نص زر الإجراء", value: quiz.showInfo.actionButtonText || "—" },
-        { label: "محاولة مفتوحة مسبقاً (Resume)", value: quiz.showInfo.isResumeAttempt ? "نعم" : "لا" },
-      ]));
+      lines.push(
+        buildMetadataTable([
+          { label: "عنوان صفحة الاختبار", value: quiz.showInfo.title || "—" },
+          { label: "نص زر الإجراء", value: quiz.showInfo.actionButtonText || "—" },
+          {
+            label: "محاولة مفتوحة مسبقاً (Resume)",
+            value: quiz.showInfo.isResumeAttempt ? "نعم" : "لا",
+          },
+        ]),
+      );
       lines.push("");
     }
 
     if (quiz.initConfig) {
-      lines.push(buildMetadataTable([
-        { label: "quiz_id", value: quiz.initConfig.quizId ?? "—" },
-        { label: "results_id", value: quiz.initConfig.resultsId ?? "—" },
-        { label: "إجمالي الأجزاء (parts)", value: quiz.initConfig.parts ?? "—" },
-        { label: "اختبار مؤقت (timed_quiz)", value: quiz.initConfig.timedQuiz ? "نعم (محمي)" : "لا" },
-      ]));
+      lines.push(
+        buildMetadataTable([
+          { label: "quiz_id", value: quiz.initConfig.quizId ?? "—" },
+          { label: "results_id", value: quiz.initConfig.resultsId ?? "—" },
+          { label: "إجمالي الأجزاء (parts)", value: quiz.initConfig.parts ?? "—" },
+          {
+            label: "اختبار مؤقت (timed_quiz)",
+            value: quiz.initConfig.timedQuiz ? "نعم (محمي)" : "لا",
+          },
+        ]),
+      );
       lines.push("");
     }
 
@@ -424,10 +536,12 @@ export function renderQuizScanMarkdown(input: QuizScanReportInput): string {
         s.promptPreview,
         s.recordedAnswer,
       ]);
-      lines.push(buildMarkdownTable(
-        ["عنوان السؤال", "نظرة عامة على نص السؤال", "الإجابة المسجلة"],
-        rows,
-      ));
+      lines.push(
+        buildMarkdownTable(
+          ["عنوان السؤال", "نظرة عامة على نص السؤال", "الإجابة المسجلة"],
+          rows,
+        ),
+      );
       lines.push("");
     }
   }
@@ -443,10 +557,19 @@ export function renderQuizScanMarkdown(input: QuizScanReportInput): string {
       t.kind,
       t.updatedCookieNames.length > 0 ? t.updatedCookieNames.join(", ") : "—",
     ]);
-    lines.push(buildMarkdownTable(
-      ["الطريقة", "الرابط", "الحالة", "الزمن", "النوع", "الكوكيز المحدثة (أسماء فقط)"],
-      traceRows,
-    ));
+    lines.push(
+      buildMarkdownTable(
+        [
+          "الطريقة",
+          "الرابط",
+          "الحالة",
+          "الزمن",
+          "النوع",
+          "الكوكيز المحدثة (أسماء فقط)",
+        ],
+        traceRows,
+      ),
+    );
     lines.push("");
   }
 
@@ -477,20 +600,38 @@ export function renderQuizDraftMarkdown(input: QuizDraftReportInput): string {
   } = input;
 
   const lines: string[] = [];
-  lines.push(buildSectionHeading(1, `تقرير ${dryRun ? "معاينة مسودة الاختبار (Dry-Run)" : "تنفيذ حفظ مسودة الاختبار مع الإيقاف المؤقت"}`));
+  lines.push(
+    buildSectionHeading(
+      1,
+      `تقرير ${dryRun ? "معاينة مسودة الاختبار (Dry-Run)" : "تنفيذ حفظ مسودة الاختبار مع الإيقاف المؤقت"}`,
+    ),
+  );
   lines.push("");
 
-  lines.push(buildMetadataTable([
-    { label: "التاريخ والوقت", value: formatIsoTimestamp(timestamp) },
-    { label: "رابط صفحة عرض الاختبار", value: displayUrl },
-    { label: "معرف الاختبار (quiz_id)", value: result.quizId },
-    { label: "معرف المحاولة (results_id)", value: result.resultsId },
-    { label: "إجمالي الأجزاء", value: result.totalParts },
-    { label: "وضع التشغيل", value: dryRun ? "معاينة فقط (Dry-Run - لم يتم إرسال أي POST)" : "تنفيذ فعلي للمسودة + إيقاف مؤقت (/pause)" },
-    { label: "تم الوصول إلى شاشة الملخص النهائية", value: result.reachedSummary ? "نعم (تم التوقف قبل /finish)" : "لا" },
-    { label: "تم الإيقاف المؤقت بأمان", value: pausedSafely ? "نعم" : "لا" },
-    { label: "حالة الجلسة", value: hasSession ? "نشطة (VALUES)" : "غير نشطة / placeholder (VALUES)" },
-  ]));
+  lines.push(
+    buildMetadataTable([
+      { label: "التاريخ والوقت", value: formatIsoTimestamp(timestamp) },
+      { label: "رابط صفحة عرض الاختبار", value: displayUrl },
+      { label: "معرف الاختبار (quiz_id)", value: result.quizId },
+      { label: "معرف المحاولة (results_id)", value: result.resultsId },
+      { label: "إجمالي الأجزاء", value: result.totalParts },
+      {
+        label: "وضع التشغيل",
+        value: dryRun
+          ? "معاينة فقط (Dry-Run - لم يتم إرسال أي POST)"
+          : "تنفيذ فعلي للمسودة + إيقاف مؤقت (/pause)",
+      },
+      {
+        label: "تم الوصول إلى شاشة الملخص النهائية",
+        value: result.reachedSummary ? "نعم (تم التوقف قبل /finish)" : "لا",
+      },
+      { label: "تم الإيقاف المؤقت بأمان", value: pausedSafely ? "نعم" : "لا" },
+      {
+        label: "حالة الجلسة",
+        value: hasSession ? "نشطة (VALUES)" : "غير نشطة / placeholder (VALUES)",
+      },
+    ]),
+  );
   lines.push("");
 
   lines.push(buildSectionHeading(2, "خطوات ومعاينة الإجابات المرسلة"));
@@ -501,14 +642,16 @@ export function renderQuizDraftMarkdown(input: QuizDraftReportInput): string {
     s.questionHeader,
     s.sentAnswer || "(الإجابة الحالية / فارغ)",
     answersByPart[s.part] !== undefined ? "مخصصة (--answers)" : "افتراضية / حالية",
-    s.status !== undefined ? `${s.status}` : (dryRun ? "معاينة (Dry-Run)" : "تم"),
+    s.status !== undefined ? `${s.status}` : dryRun ? "معاينة (Dry-Run)" : "تم",
     s.action,
   ]);
 
-  lines.push(buildMarkdownTable(
-    ["الجزء", "عنوان السؤال", "الإجابة المستخدمة", "مصدر الإجابة", "الحالة", "رابط الإجراء"],
-    stepRows.length > 0 ? stepRows : [["—", "—", "—", "—", "—", "—"]],
-  ));
+  lines.push(
+    buildMarkdownTable(
+      ["الجزء", "عنوان السؤال", "الإجابة المستخدمة", "مصدر الإجابة", "الحالة", "رابط الإجراء"],
+      stepRows.length > 0 ? stepRows : [["—", "—", "—", "—", "—", "—"]],
+    ),
+  );
   lines.push("");
 
   lines.push(buildSectionHeading(2, "تفاصيل الأسئلة والخيارات"));
@@ -522,17 +665,21 @@ export function renderQuizDraftMarkdown(input: QuizDraftReportInput): string {
   if (result.summaryItems && result.summaryItems.length > 0) {
     lines.push(buildSectionHeading(2, "شاشة الملخص النهائية عند الوصول إليها (Summary Screen)"));
     lines.push("");
-    lines.push("> **تنبيه أمان:** تم التوقف عند شاشة الملخص دون استدعاء `/student_take_quiz_assignment/finish/` نهائياً.");
+    lines.push(
+      "> **تنبيه أمان:** تم التوقف عند شاشة الملخص دون استدعاء `/student_take_quiz_assignment/finish/` نهائياً.",
+    );
     lines.push("");
     const rows = result.summaryItems.map((s) => [
       s.questionTitle,
       s.promptPreview,
       s.recordedAnswer,
     ]);
-    lines.push(buildMarkdownTable(
-      ["عنوان السؤال", "نظرة عامة على نص السؤال", "الإجابة المسجلة"],
-      rows,
-    ));
+    lines.push(
+      buildMarkdownTable(
+        ["عنوان السؤال", "نظرة عامة على نص السؤال", "الإجابة المسجلة"],
+        rows,
+      ),
+    );
     lines.push("");
   }
 
@@ -547,10 +694,253 @@ export function renderQuizDraftMarkdown(input: QuizDraftReportInput): string {
       t.kind,
       t.updatedCookieNames.length > 0 ? t.updatedCookieNames.join(", ") : "—",
     ]);
-    lines.push(buildMarkdownTable(
-      ["الطريقة", "الرابط", "الحالة", "الزمن", "النوع", "الكوكيز المحدثة (أسماء فقط)"],
-      traceRows,
-    ));
+    lines.push(
+      buildMarkdownTable(
+        [
+          "الطريقة",
+          "الرابط",
+          "الحالة",
+          "الزمن",
+          "النوع",
+          "الكوكيز المحدثة (أسماء فقط)",
+        ],
+        traceRows,
+      ),
+    );
+    lines.push("");
+  }
+
+  return lines.join("\n");
+}
+
+export interface QuizSolveReportInput {
+  targetUrl: string;
+  displayUrl: string;
+  showUrl?: string;
+  timestamp: Date;
+  result: QuizSolveAttemptResult;
+  traces?: SanitizedHttpTrace[];
+  hasSession: boolean;
+}
+
+export function renderQuizSolveMarkdown(input: QuizSolveReportInput): string {
+  const {
+    targetUrl,
+    displayUrl,
+    showUrl,
+    timestamp,
+    result,
+    traces = [],
+    hasSession,
+  } = input;
+
+  const modeLabelAr =
+    result.mode === "dry-run"
+      ? "معاينة ذكية فقط (Dry-Run - لم يتم إرسال أي POST)"
+      : result.mode === "submit-ready"
+        ? "تنفيذ وحفظ كامل مع التحقق من الملخص قبل التسليم (/finish محظور للأمان)"
+        : "تنفيذ وحفظ مسودة الإجابات مع الإيقاف المؤقت (/pause)";
+
+  const lines: string[] = [];
+  lines.push(
+    buildSectionHeading(
+      1,
+      `تقرير حل الاختبار بالذكاء الاصطناعي (${result.dryRun ? "معاينة Dry-Run" : "تنفيذ وحفظ"})`,
+    ),
+  );
+  lines.push("");
+
+  lines.push(
+    buildMetadataTable([
+      { label: "التاريخ والوقت", value: formatIsoTimestamp(timestamp) },
+      { label: "المدخل الأصلي", value: targetUrl },
+      ...(showUrl ? [{ label: "رابط صفحة الاختبار (Show)", value: showUrl }] : []),
+      { label: "رابط صفحة الأسئلة (Display)", value: displayUrl },
+      ...(result.quizTitle ? [{ label: "عنوان الاختبار", value: result.quizTitle }] : []),
+      { label: "معرف الاختبار (quiz_id)", value: result.quizId },
+      { label: "معرف المحاولة (results_id)", value: result.resultsId },
+      { label: "مزود الذكاء الاصطناعي (Provider)", value: result.provider },
+      { label: "النموذج المستخدم (Model)", value: result.model },
+      { label: "مفتاح المزود (LLM_API_KEY)", value: "VALUES" },
+      { label: "وضع التشغيل", value: modeLabelAr },
+      { label: "إجمالي أجزاء الاختبار", value: result.totalParts },
+      { label: "عدد الأسئلة المحلولة", value: result.steps.length },
+      {
+        label: "الوصول إلى شاشة الملخص النهائية",
+        value: result.reachedSummary ? "نعم" : "لا",
+      },
+      {
+        label: "التحقق من اكتمال الملخص",
+        value: result.reachedSummary
+          ? result.summaryVerified
+            ? "مكتمل ومتحقق منه"
+            : "يوجد تنبيهات / أسئلة غير مسجلة"
+          : "— (معاينة أو لم يصل للملخص)",
+      },
+      {
+        label: "تم الإيقاف المؤقت بأمان (/pause)",
+        value: result.pausedSafely ? "نعم" : "لا",
+      },
+      {
+        label: "حالة الجلسة",
+        value: hasSession ? "نشطة (VALUES)" : "غير نشطة / placeholder (VALUES)",
+      },
+    ]),
+  );
+  lines.push("");
+
+  if (result.warnings.length > 0) {
+    lines.push(buildSectionHeading(2, "تنبيهات الأمان والتحقق"));
+    lines.push("");
+    for (const w of result.warnings) {
+      lines.push(`> **تنبيه:** ${sanitizeText(w)}`);
+      lines.push("");
+    }
+  }
+
+  lines.push(buildSectionHeading(2, "ملخص الإجابات المقترحة / المرسلة لكل سؤال"));
+  lines.push("");
+
+  const stepRows = result.steps.map((s) => {
+    const qScreen = result.questions.find((q) => q.part === s.part)?.screen;
+    const typeAr = qScreen ? getQuestionTypeLabelAr(qScreen) : s.inputType;
+    const langAr = s.language === "ar" ? "العربية (ar)" : "الإنجليزية (en)";
+    const confidencePct = `${Math.round(s.solvedAnswer.confidence * 100)}%`;
+    const filesNote =
+      s.attachedFiles && s.attachedFiles.length > 0
+        ? s.attachedFiles.map((f) => `${f.fileName} (${f.sizeBytes}B)`).join("، ")
+        : "—";
+    const statusLabel =
+      s.status !== undefined
+        ? `HTTP ${s.status}`
+        : result.dryRun
+          ? "معاينة (Dry-Run)"
+          : "تم";
+
+    return [
+      `الجزء ${s.part}`,
+      s.questionHeader || `السؤال ${s.part}`,
+      typeAr,
+      langAr,
+      confidencePct,
+      sanitizeText(s.formattedSummary || "—"),
+      filesNote,
+      statusLabel,
+    ];
+  });
+
+  lines.push(
+    buildMarkdownTable(
+      [
+        "الجزء",
+        "عنوان السؤال",
+        "نوع السؤال",
+        "لغة الإجابة",
+        "الثقة",
+        "ملخص الإجابة",
+        "الملفات المرفقة",
+        "الحالة",
+      ],
+      stepRows.length > 0
+        ? stepRows
+        : [["—", "—", "—", "—", "—", "—", "—", "—"]],
+    ),
+  );
+  lines.push("");
+
+  lines.push(buildSectionHeading(2, "تفاصيل الأسئلة وتبرير الإجابات"));
+  lines.push("");
+
+  for (const q of result.questions) {
+    const cardLines = renderQuestionCardMarkdown(q, `سؤال الجزء ${q.part}`);
+    lines.push(...cardLines);
+
+    const step = result.steps.find((s) => s.part === q.part);
+    if (step) {
+      lines.push(buildSectionHeading(4, `تفاصيل حل الذكاء الاصطناعي للجزء ${q.part}`));
+      lines.push("");
+      lines.push(
+        buildMetadataTable([
+          {
+            label: "اللغة المختارة للإجابة",
+            value: step.language === "ar" ? "العربية" : "الإنجليزية (English)",
+          },
+          {
+            label: "ملخص الإجابة المعتمدة",
+            value: sanitizeText(step.formattedSummary),
+          },
+          {
+            label: "التعليل المختصر (Reasoning)",
+            value: sanitizeText(step.solvedAnswer.reasoning || "—"),
+          },
+          {
+            label: "درجة الثقة",
+            value: `${Math.round(step.solvedAnswer.confidence * 100)}%`,
+          },
+          ...(step.attachedFiles && step.attachedFiles.length > 0
+            ? [
+                {
+                  label: "المرفقات المجهزة للرفع",
+                  value: step.attachedFiles
+                    .map(
+                      (f) =>
+                        `${f.fieldName}: ${f.fileName} (${f.mimeType}, ${f.sizeBytes} bytes)`,
+                    )
+                    .join(" | "),
+                },
+              ]
+            : []),
+        ]),
+      );
+      lines.push("");
+    }
+  }
+
+  if (result.summaryItems && result.summaryItems.length > 0) {
+    lines.push(buildSectionHeading(2, "شاشة الملخص النهائية بعد الحفظ (Summary Screen)"));
+    lines.push("");
+    const summaryRows = result.summaryItems.map((s) => [
+      s.questionTitle,
+      s.promptPreview,
+      s.recordedAnswer,
+    ]);
+    lines.push(
+      buildMarkdownTable(
+        ["عنوان السؤال", "نظرة عامة على نص السؤال", "الإجابة المسجلة على المنصة"],
+        summaryRows,
+      ),
+    );
+    lines.push("");
+  }
+
+  if (traces.length > 0) {
+    lines.push(buildSectionHeading(2, "سجل طلبات HTTP (مع إخفاء الأسرار VALUES)"));
+    lines.push("");
+    const traceRows = traces.map((t) => [
+      t.method,
+      t.url,
+      `${t.status} ${t.statusText}`,
+      `${t.elapsedMs}ms`,
+      t.kind,
+      t.fileAttachments && t.fileAttachments.length > 0
+        ? t.fileAttachments.map((f) => f.fileName).join(", ")
+        : "—",
+      t.updatedCookieNames.length > 0 ? t.updatedCookieNames.join(", ") : "—",
+    ]);
+    lines.push(
+      buildMarkdownTable(
+        [
+          "الطريقة",
+          "الرابط",
+          "الحالة",
+          "الزمن",
+          "النوع",
+          "الملفات المرسلة",
+          "الكوكيز المحدثة (أسماء فقط)",
+        ],
+        traceRows,
+      ),
+    );
     lines.push("");
   }
 

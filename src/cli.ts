@@ -7,7 +7,9 @@ import {
   runQuizDraftCommand,
   runQuizInspectCommand,
   runQuizScanCommand,
+  runQuizSolveCommand,
 } from "./commands/quiz.command.js";
+import type { LanguagePreference } from "./types/index.js";
 import { runMonitorCommand } from "./commands/monitor.command.js";
 
 const HELP_TEXT = `
@@ -27,6 +29,7 @@ Commands:
   quiz scan --class-id <id> | --url <url> [options]
                                    Scan due quizzes and inspect open/resumed attempts (GET only)
   quiz draft <display-url> [opts]  Preview or save quiz drafts + pause (Dry-run by default, /finish BLOCKED)
+  quiz solve <url-or-id> [opts]    Solve quiz questions via LLM adapter (Dry-run by default, /finish BLOCKED)
   monitor [urls...] [options]      Inspect HTTP responses & auto-detect LMS entities (GET only)
 
 Global Options:
@@ -82,6 +85,7 @@ Usage:
   npx tsx src/cli.ts quiz scan --class-id <id> [options]
   npx tsx src/cli.ts quiz scan --url <fullUrl> [options]
   npx tsx src/cli.ts quiz draft <displayUrl> [options]
+  npx tsx src/cli.ts quiz solve <showUrl|displayUrl|quizId> [options]
 
 quiz inspect options:
   --results-id <id>  Attempt results ID (if inspecting display URL directly)
@@ -101,6 +105,20 @@ quiz draft options:
   --apply            Actually send draft POSTs + /pause/ (default is safe dry-run)
   --no-pause         Do not call /pause/ after --apply
   --allow-timed      Allow running on timed quizzes (timed_quiz=true)
+  --no-report        Skip writing Markdown report
+  --quiet            Suppress verbose HTTP request banners
+
+quiz solve options:
+  --provider <name>  LLM provider: gemini | openai | anthropic | mock (defaults to LLM_PROVIDER)
+  --model <name>     Model override (defaults to LLM_MODEL or provider default)
+  --lang <mode>      Answer language: auto | ar | en (default: auto based on subject & question)
+  --subject <hint>   Optional subject hint (e.g. "English Language", "الفيزياء")
+  --attach <p=path>  Attach local file for part p (repeatable, e.g. --attach 3=./solution.pdf)
+  --start-new        Opt-in to open unstarted quiz attempts
+  --allow-timed      Allow running on timed quizzes (timed_quiz=true)
+  --apply            Save solved answers to LMS via POST + /pause/ (default is GET-only dry-run)
+  --submit           Save all parts, verify summary screen completeness, and pause ready for browser submit
+  --no-pause         Do not call /pause/ after --apply / --submit
   --no-report        Skip writing Markdown report
   --quiet            Suppress verbose HTTP request banners
 `);
@@ -359,6 +377,76 @@ async function main() {
         apply: values.apply ?? false,
         noPause: values["no-pause"] ?? false,
         allowTimed: values["allow-timed"] ?? false,
+        noReport: values["no-report"] ?? false,
+      });
+
+      if (!ctx.quiet) {
+        console.log(`\n[Done] ${result.summaryMessage}`);
+      }
+      return;
+    }
+
+    if (subcommand === "solve") {
+      const { values, positionals } = parseArgs({
+        args: rawArgs.slice(2),
+        options: {
+          provider: { type: "string" },
+          model: { type: "string" },
+          lang: { type: "string", default: "auto" },
+          subject: { type: "string" },
+          attach: { type: "string", multiple: true },
+          "start-new": { type: "boolean", default: false },
+          "allow-timed": { type: "boolean", default: false },
+          apply: { type: "boolean", default: false },
+          submit: { type: "boolean", default: false },
+          "no-pause": { type: "boolean", default: false },
+          "no-report": { type: "boolean", default: false },
+          quiet: { type: "boolean", default: false },
+          help: { type: "boolean", short: "h", default: false },
+          "out-dir": { type: "string" },
+        },
+        allowPositionals: true,
+      });
+
+      if (values.help) {
+        printSubcommandHelp("quiz");
+        return;
+      }
+
+      const targetOrUrl = positionals[0];
+      if (!targetOrUrl) {
+        console.error("[Error] Missing required argument: <showUrl|displayUrl|quizId>");
+        printSubcommandHelp("quiz");
+        process.exitCode = 1;
+        return;
+      }
+
+      const rawLang = (values.lang || "auto").toLowerCase();
+      if (rawLang !== "auto" && rawLang !== "ar" && rawLang !== "en") {
+        console.error(`[Error] Invalid --lang "${values.lang}". Expected: auto | ar | en`);
+        process.exitCode = 1;
+        return;
+      }
+
+      const config = loadAppConfig();
+      const ctx = buildCommandContext(config, {
+        quiet: values.quiet ?? false,
+        writeReport: !(values["no-report"] ?? false),
+        ...(values["out-dir"] ? { outDir: values["out-dir"] } : {}),
+      });
+
+      const result = await runQuizSolveCommand(ctx, {
+        targetOrUrl,
+        ...(values.provider ? { provider: values.provider } : {}),
+        ...(values.model ? { model: values.model } : {}),
+        lang: rawLang as LanguagePreference,
+        ...(values.subject ? { subject: values.subject } : {}),
+        ...(values.attach ? { attachments: values.attach } : {}),
+        startNew: values["start-new"] ?? false,
+        allowTimed: values["allow-timed"] ?? false,
+        apply: values.apply ?? false,
+        submit: values.submit ?? false,
+        noPause: values["no-pause"] ?? false,
         noReport: values["no-report"] ?? false,
       });
 

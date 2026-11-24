@@ -9,6 +9,7 @@
     "types": ["node"],
 
     // Other Outputs
+    "outDir": "dist",
     "sourceMap": true,
     "declaration": true,
     "declarationMap": true,

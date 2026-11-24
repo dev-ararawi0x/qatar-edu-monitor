@@ -48,11 +48,13 @@ The codebase is organized into clean, unidirectional layers so that HTTP transpo
 ```
 
 ### Layer Responsibilities
-- **`src/types/`**: Shared TypeScript interfaces and domain models (`ParsedAssignment`, `ParsedLesson`, `ParsedQuizScreen`, `SanitizedHttpTrace`, CLI options). Strictly compatible with `exactOptionalPropertyTypes`, `noUncheckedIndexedAccess`, and `verbatimModuleSyntax`.
-- **`src/core/`**: Infrastructure primitives. Owns HTTP session state, cookie jar updates, secret sanitization, URL generation, and transport-level safety blocks.
-- **`src/parsers/`**: Pure functions that accept HTML strings and return strongly typed domain models using Cheerio. Zero side effects or network calls.
+- **`src/types/`**: Shared TypeScript interfaces and domain models (`ParsedAssignment`, `ParsedLesson`, `ParsedQuizScreen`, `SanitizedHttpTrace`, `LlmProvider`, CLI options). Strictly compatible with `exactOptionalPropertyTypes`, `noUncheckedIndexedAccess`, and `verbatimModuleSyntax`.
+- **`src/core/`**: Infrastructure primitives. Owns HTTP session state, cookie jar updates, multi-value & multipart `Blob` file serialization, binary image fetching, secret sanitization, URL generation, and transport-level safety blocks.
+- **`src/parsers/`**: Pure functions that accept HTML strings and return strongly typed domain models using Cheerio (including choice `fieldName`, `<select>` `{ value, label }`, and inline `[BLANK]` context snippets). Zero side effects or network calls.
+- **`src/llm/`**: Pluggable **Ports & Adapters** AI solver layer (`GeminiLlmAdapter`, `OpenAiCompatibleLlmAdapter`, `AnthropicLlmAdapter`, `MockLlmAdapter`), subject/question Arabic-vs-English language detection (`language-detector.ts`), structured JSON prompt construction, and DOM-grounded answer validation.
+- **`src/services/`**: Domain workflow orchestrators (`quiz-inspector.service.ts`, `quiz-form.mapper.ts`, `quiz-solver.service.ts`) decoupled from CLI flags and report files.
 - **`src/exporters/`**: Formats typed domain models into clean Arabic (`العربية`) Markdown files and persists timestamped reports plus `latest.md` under `reports/<command>/`.
-- **`src/commands/`**: Orchestrates workflow for each CLI command: calls `LmsHttpClient`, feeds HTML into parsers, accumulates domain results, invokes exporters, and logs sanitized console summaries.
+- **`src/commands/`**: Thin CLI controllers that wire `CommandContext` to services and exporters.
 - **`src/cli.ts`**: Single entrypoint that routes subcommands and parses CLI flags.
 
 ---
