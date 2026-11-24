@@ -1,0 +1,33 @@
+{
+  "name": "@qatar-edu/cli",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "qedu": "./dist/cli.js"
+  },
+  "scripts": {
+    "cli": "tsx src/cli.ts",
+    "monitor": "tsx src/cli.ts monitor",
+    "assignments:list": "tsx src/cli.ts assignments list",
+    "assignments:due": "tsx src/cli.ts assignments due",
+    "lessons:list": "tsx src/cli.ts lessons list",
+    "quiz:inspect": "tsx src/cli.ts quiz inspect",
+    "quiz:scan": "tsx src/cli.ts quiz scan",
+    "quiz:draft": "tsx src/cli.ts quiz draft",
+    "quiz:solve": "tsx src/cli.ts quiz solve",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc",
+    "test": "node --import tsx --test tests/*.test.ts"
+  },
+  "dependencies": {
+    "@qatar-edu/core": "workspace:*",
+    "dotenv": "^18.0.10"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "cheerio": "^1.2.0"
+  }
+}
