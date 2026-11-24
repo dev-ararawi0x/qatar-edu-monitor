@@ -10,8 +10,8 @@ Project guide and operational rules for Claude and AI coding assistants.
 - **Packages**:
   - `packages/core` (`@qatar-edu/core`): shared domain, HTTP, cookies, sanitizer, URLs, parsers, LLM adapters, quiz services.
   - `apps/cli` (`@qatar-edu/cli`): CLI entrypoint, commands, config, and Arabic Markdown exporters.
-  - `apps/api` (`@qatar-edu/api`): minimal Hono `/health` skeleton.
-  - `apps/web` (`@qatar-edu/web`): minimal Vite + React + TanStack Router skeleton.
+  - `apps/api` (`@qatar-edu/api`): Hono API — better-auth (email/password, optional Microsoft OAuth), PostgreSQL/Drizzle, encrypted per-user LMS cookie + LLM settings vault, modular routes, `SolveJobWorker` background queue.
+  - `apps/web` (`@qatar-edu/web`): Arabic RTL React app — Tailwind v4 + shadcn-style UI, TanStack Router/Query, `hc<AppType>` RPC, better-auth/react.
 - **Docs**: `docs/architecture.md`, `AGENTS.md`, and `plans/architecture-and-refactoring-plan.md`.
 
 ---
@@ -20,6 +20,10 @@ Project guide and operational rules for Claude and AI coding assistants.
 
 ```bash
 pnpm install
+pnpm dev                  # everything: .env bootstrap + Postgres + API + web
+pnpm build && pnpm start  # production-ish run
+pnpm setup                # only .env vars + DB container/migrations
+pnpm db:up / pnpm db:down # Postgres container lifecycle (docker or rootless podman)
 pnpm -r typecheck
 pnpm --filter @qatar-edu/core test
 pnpm --filter @qatar-edu/cli exec tsx src/cli.ts --help
@@ -46,8 +50,8 @@ pnpm --filter @qatar-edu/cli exec tsx src/cli.ts quiz draft <display-url> --appl
 2. **Quiz Safety Guardrails**:
    - `quiz inspect`, `quiz scan`, and `quiz solve` dry-run are GET-only.
    - Do not start new quiz attempts unless `--start-new` is explicitly passed.
-   - `quiz draft` and `quiz solve` must remain dry-run by default.
-   - NEVER call or allow calls to `/student_take_quiz_assignment/finish/`; `LmsHttpClient` blocks it at transport level.
+   - `quiz draft` and `quiz solve` must remain dry-run by default; the web worker uses `apply` + `/pause/` only.
+   - NEVER call or allow calls to `/student_take_quiz_assignment/finish/`; `LmsHttpClient` blocks it at transport level. The sole exception is `submitQuizFinishExplicitly` (Symbol-gated), reachable only via the human-confirmed `POST /api/quizzes/:quizId/finish` route.
 
 ---
 
@@ -62,5 +66,5 @@ pnpm --filter @qatar-edu/cli exec tsx src/cli.ts quiz draft <display-url> --appl
 - `apps/cli/src/commands/`: command orchestrators.
 - `apps/cli/src/exporters/`: Arabic Markdown report generators and writer.
 - `apps/cli/src/config.ts`: dotenv/env config and command context.
-- `apps/api/src/`: Hono API skeleton (`/health`).
-- `apps/web/src/`: Vite/React/TanStack Router skeleton.
+- `apps/api/src/`: Hono app (`app.ts` fluent chain → `AppType`), `db/` (lazy client + Drizzle schema/migrations), `lib/` (auth, crypto-vault, session factory, llm-resolver, worker), `modules/` (credentials, settings, classes, quizzes, jobs).
+- `apps/web/src/`: Vite/React/TanStack Router RTL app; `lib/api.ts` (`hc<AppType>` + better-auth), `components/ui/` primitives + `app-shell`, `routes/` (login, `_authed` guard, dashboard, jobs, settings, quiz review).

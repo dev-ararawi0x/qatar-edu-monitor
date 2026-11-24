@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "solve_jobs_one_running_per_user" ON "solve_jobs" USING btree ("user_id") WHERE "solve_jobs"."status" = 'running';

@@ -5,6 +5,7 @@ import type {
   QuestionImageInline,
   QuizExecutionMode,
   QuizSolveAttemptResult,
+  QuizSolverProgressEvent,
   SummaryItem,
 } from "../types/index.js";
 import type { LmsHttpClient } from "../core/http-client.js";
@@ -20,6 +21,13 @@ import {
   resolveActiveQuizEntry,
 } from "./quiz-inspector.service.js";
 
+export class QuizSolveAbortedError extends Error {
+  constructor(message = "Quiz solving was aborted by the caller.") {
+    super(message);
+    this.name = "QuizSolveAbortedError";
+  }
+}
+
 export interface QuizSolverServiceOptions {
   targetOrUrl: string;
   baseUrl: string;
@@ -34,6 +42,18 @@ export interface QuizSolverServiceOptions {
   submit?: boolean;
   noPause?: boolean;
   quiet?: boolean;
+  /**
+   * Optional progress callback invoked after each LLM solve and after each
+   * successful answer POST. Used by background workers for live progress.
+   */
+  onPartProgress?: (
+    event: QuizSolverProgressEvent,
+  ) => void | Promise<void>;
+  /**
+   * Optional abort signal. When aborted between parts, the workflow pauses
+   * the attempt safely via /pause/ and throws QuizSolveAbortedError.
+   */
+  signal?: AbortSignal;
 }
 
 async function fetchQuestionImagesInline(
@@ -77,6 +97,7 @@ export function verifySummaryScreenCompleteness(
     const answer = (item.recordedAnswer ?? "").trim();
     return (
       !answer ||
+      answer.includes("(غير محدد)") ||
       answer === "(غير محدد)" ||
       answer.includes("لا يوجد") ||
       /^\[?\s*none\s*\]?$/i.test(answer) ||
@@ -118,6 +139,8 @@ export async function runQuizSolverWorkflow(
     submit = false,
     noPause = false,
     quiet = false,
+    onPartProgress,
+    signal,
   } = options;
 
   const dryRun = !apply && !submit;
@@ -174,6 +197,9 @@ export async function runQuizSolverWorkflow(
     );
 
     for (const partItem of readOnly.questions) {
+      if (signal?.aborted) {
+        throw new QuizSolveAbortedError();
+      }
       if (partItem.screen.stage !== "question") continue;
       const questionScreen = partItem.screen;
 
@@ -226,6 +252,18 @@ export async function runQuizSolverWorkflow(
           ? { attachedFiles: mapped.sanitizedFilesPreview }
           : {}),
       });
+
+      if (onPartProgress) {
+        await onPartProgress({
+          stage: "llm_solved",
+          part: partItem.part,
+          totalParts: partItem.totalParts,
+          ...(questionScreen.questionHeader
+            ? { questionHeader: questionScreen.questionHeader }
+            : {}),
+          formattedSummary: mapped.formattedSummary,
+        });
+      }
 
       if (!quiet) {
         console.log(
@@ -294,12 +332,24 @@ export async function runQuizSolverWorkflow(
         result.summaryVerified = verification.verified;
         result.warnings.push(...verification.warnings);
 
+        if (onPartProgress) {
+          await onPartProgress({
+            stage: "summary_reached",
+            part: currentPart,
+            totalParts,
+          });
+        }
+
         if (!quiet) {
           console.log(
             `\n[Summary Reached] Verified=${verification.verified} (${currentScreen.summaryItems.length} items recorded).`,
           );
         }
         break;
+      }
+
+      if (signal?.aborted) {
+        throw new QuizSolveAbortedError();
       }
 
       const questionScreen = currentScreen;
@@ -341,6 +391,18 @@ export async function runQuizSolverWorkflow(
         attachmentsByPart?.get(currentPart),
       );
 
+      if (onPartProgress) {
+        await onPartProgress({
+          stage: "llm_solved",
+          part: currentPart,
+          totalParts,
+          ...(questionScreen.questionHeader
+            ? { questionHeader: questionScreen.questionHeader }
+            : {}),
+          formattedSummary: mapped.formattedSummary,
+        });
+      }
+
       const postRes = await client.request({
         method: "POST",
         pathOrUrl: questionScreen.action,
@@ -371,6 +433,19 @@ export async function runQuizSolverWorkflow(
         console.log(
           `[Saved Part ${currentPart}/${totalParts}] HTTP ${postRes.status} (${targetLanguage.toUpperCase()} | ${questionScreen.inputType}) -> ${mapped.formattedSummary}`,
         );
+      }
+
+      if (onPartProgress) {
+        await onPartProgress({
+          stage: "answer_posted",
+          part: currentPart,
+          totalParts,
+          ...(questionScreen.questionHeader
+            ? { questionHeader: questionScreen.questionHeader }
+            : {}),
+          formattedSummary: mapped.formattedSummary,
+          status: postRes.status,
+        });
       }
 
       if (postRes.status !== 200) {
@@ -434,6 +509,13 @@ export async function runQuizSolverWorkflow(
       },
     });
     result.pausedSafely = true;
+    if (onPartProgress) {
+      await onPartProgress({
+        stage: "paused",
+        part: currentPart,
+        totalParts,
+      });
+    }
     if (!quiet) {
       console.log("[Paused Safely] Quiz attempt paused via /pause/ and ready in browser.");
     }

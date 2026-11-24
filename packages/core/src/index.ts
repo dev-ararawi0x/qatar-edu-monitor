@@ -17,9 +17,14 @@ export {
 export {
   buildAssignmentsDueUrl,
   buildAssignmentsListUrl,
+  buildClassListsWidgetUrl,
+  buildDashboardUrl,
   buildLessonsListUrl,
   buildQuizDisplayUrl,
   buildQuizPauseUrl,
   buildQuizShowUrl,
+  buildStudentClassesUrl,
   isQuizFinishUrl,
+  isSameLmsOriginUrl,
+  validateAllowedLmsBaseUrl,
 } from "./core/lms-urls.js";

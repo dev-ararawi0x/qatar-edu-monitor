@@ -12,8 +12,8 @@ Workspace packages:
 
 - `packages/core` (`@qatar-edu/core`): shared LMS domain types, HTTP client, cookie jar, sanitizer, URL builders, Cheerio parsers, LLM adapters/validator/prompt-builder, and quiz domain services.
 - `apps/cli` (`@qatar-edu/cli`): CLI entrypoint, command handlers, environment/report configuration, and Arabic Markdown exporters.
-- `apps/api` (`@qatar-edu/api`): minimal Hono + Node.js API skeleton with `/health` only.
-- `apps/web` (`@qatar-edu/web`): minimal Vite + React + TypeScript + TanStack Router skeleton with no business UI yet.
+- `apps/api` (`@qatar-edu/api`): Hono API with better-auth (email/password, optional Microsoft OAuth), PostgreSQL + Drizzle, per-user encrypted LMS cookie/LLM vault, modular routes (`credentials`, `settings`, `classes`, `quizzes`, `jobs`), and a Postgres-backed `SolveJobWorker` for background AI solving (apply + pause, never finish).
+- `apps/web` (`@qatar-edu/web`): Arabic RTL React app (Tailwind v4 + shadcn-style UI, TanStack Router/Query, `hc<AppType>` RPC, better-auth/react) with dashboard, jobs monitor, review/edit/finish, and settings pages.
 
 ---
 
@@ -27,6 +27,10 @@ Workspace packages:
 
 ```bash
 pnpm install
+pnpm dev                  # everything: .env bootstrap + Postgres container + API + web
+pnpm build && pnpm start  # production-ish run (built web + API on :3001/:5173)
+pnpm setup                # only .env vars + DB container/migrations
+pnpm db:up / pnpm db:down # Postgres container lifecycle (docker or rootless podman)
 pnpm -r typecheck
 pnpm --filter @qatar-edu/core test
 pnpm --filter @qatar-edu/cli exec tsx src/cli.ts --help
@@ -35,6 +39,8 @@ pnpm --filter @qatar-edu/api dev
 pnpm --filter @qatar-edu/web dev
 pnpm -r build
 ```
+
+`pnpm dev`/`pnpm start` auto-detect Docker vs rootless Podman (`scripts/db-docker.sh`) and append missing API vars (`DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `WEB_ORIGIN`, `ENCRYPTION_KEY`) to the root `.env` via `scripts/ensure-api-env.sh` — existing values are never overwritten.
 
 CLI shortcuts remain available through the root package scripts, for example `pnpm quiz:inspect -- <url-or-id>` and `pnpm quiz:draft -- <display-url>`.
 
@@ -59,13 +65,17 @@ apps/cli/src/
 └── types/                 # CLI-only context/result types
 
 apps/api/src/
-└── index.ts, server.ts    # Hono app + /health route and Node server bootstrap
+├── app.ts, rpc.ts, server.ts, worker.ts, index.ts, env.ts
+├── db/                 # lazy drizzle client + schema/{auth,credentials,lms,jobs} + migrations
+├── lib/                # auth, crypto-vault, errors, dto, lms-session.factory, llm-resolver, jobs/worker
+├── middleware/         # requireAuth
+└── modules/            # credentials, settings, classes, quizzes, jobs — each {schema,service,routes}
 
 apps/web/src/
-├── main.tsx
-├── router.ts
-├── routes/                # TanStack Router file routes
-└── styles.css
+├── main.tsx, router.ts, routeTree.gen.ts, styles.css
+├── lib/                # api (hc+authClient+queryClient), jobs, review, status, utils
+├── components/ui/      # shadcn-style primitives; app-shell.tsx
+└── routes/             # login.tsx, _authed.tsx (guard+shell), _authed/{index,jobs,settings,quizzes.$quizId}
 ```
 
 Generated reports remain under root `reports/` when running the CLI from the repository root.
@@ -84,8 +94,8 @@ Generated reports remain under root `reports/` when running the CLI from the rep
 3. **Quiz Submission & Draft Safety**:
    - `quiz draft` and `quiz solve` MUST default to dry-run mode (`POST` only when `--apply` or `--submit` is passed).
    - Draft execution MUST pause via `/student_take_quiz_assignment/pause/...` so the attempt stays resumable.
-   - **`/student_take_quiz_assignment/finish/` is strictly forbidden**. `LmsHttpClient` blocks this endpoint unconditionally at the transport layer. Never attempt to bypass this guard.
-   - Timed quizzes (`timed_quiz: true`) must abort unless `--allow-timed` is explicitly passed.
+   - **`/student_take_quiz_assignment/finish/` is forbidden for AI/jobs/CLI**. `LmsHttpClient` blocks this endpoint unconditionally at the transport layer. The ONLY allowed path is `submitQuizFinishExplicitly` in `packages/core/src/services/quiz-finish.service.ts`, reachable solely via the authenticated `POST /api/quizzes/:quizId/finish` route after explicit human confirmation (`confirmFinish: true`) and an atomic `ready_for_review → submitting_finish` claim. Never call it from workers, parsers, or CLI code.
+   - Timed quizzes (`timed_quiz: true`) must abort unless `--allow-timed`/`allowTimed` is explicitly passed.
 
 ---
 
@@ -119,6 +129,12 @@ Generated reports remain under root `reports/` when running the CLI from the rep
 ### Adding a New Quiz Question Type
 1. Extend `QuizInputType` in `packages/core/src/types/quiz.types.ts`.
 2. Update selector matching/classification in `packages/core/src/parsers/quiz.parser.ts`.
-3. Add the localized Arabic label in `apps/cli/src/exporters/quiz.exporter.ts`.
+3. Add the localized Arabic label in `apps/cli/src/exporters/quiz.exporter.ts` and `apps/web/src/lib/status.ts`/review editor if user-facing.
 4. Extend validator/mapper/service behavior in `packages/core/src/llm/` and `packages/core/src/services/` when needed.
 5. Add parser/core test coverage in `packages/core/tests/parsers.test.ts`.
+
+### Adding an API Module
+1. Create `apps/api/src/modules/<name>/{<name>.schema.ts,<name>.service.ts,<name>.routes.ts}`.
+2. Services take `db: Db` explicitly (tests inject PGlite); routes are fluent `Hono` chains using `zValidator` for bodies.
+3. Mount in `apps/api/src/app.ts` chain: `.use("/api/<name>/*", requireAuth)` then `.route("/api/<name>", createXRoutes(db))` — chaining is REQUIRED for `AppType`/RPC types.
+4. Add tests under `apps/api/tests/` (PGlite + fake-auth middleware pattern).

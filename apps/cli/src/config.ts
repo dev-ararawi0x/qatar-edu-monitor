@@ -1,7 +1,20 @@
 import "dotenv/config";
 import path from "node:path";
 import type { CommandContext } from "./types/index.js";
-import type { LlmProviderConfig, LlmProviderName } from "@qatar-edu/core";
+import type { LlmProviderConfig } from "@qatar-edu/core";
+import {
+  getDefaultFallbackModels,
+  getDefaultModelForProvider,
+  normalizeProviderName,
+  parseFallbackModelsList,
+} from "@qatar-edu/core";
+
+export {
+  getDefaultFallbackModels,
+  getDefaultModelForProvider,
+  normalizeProviderName,
+  parseFallbackModelsList,
+};
 
 export interface AppConfig {
   baseUrl: string;
@@ -9,58 +22,6 @@ export interface AppConfig {
   initialCookie: string;
   reportsDir: string;
   llm: LlmProviderConfig;
-}
-
-export function getDefaultModelForProvider(provider: LlmProviderName): string {
-  switch (provider) {
-    case "gemini":
-      return "gemini-3.8-flash";
-    case "openai":
-      return "gpt-4o-mini";
-    case "anthropic":
-      return "claude-3-5-sonnet-latest";
-    case "mock":
-      return "mock-deterministic-v1";
-  }
-}
-
-export function getDefaultFallbackModels(
-  provider: LlmProviderName,
-  primaryModel: string,
-): string[] {
-  if (provider === "gemini") {
-    const candidates = [
-      "gemini-3.6-flash",
-      "gemini-3.5-flash-lite",
-      "gemini-3.1-flash-lite",
-    ];
-    return candidates.filter((m) => m !== primaryModel);
-  }
-  return [];
-}
-
-export function parseFallbackModelsList(raw?: string): string[] | undefined {
-  if (!raw || !raw.trim()) return undefined;
-  const items = raw
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-  return items.length > 0 ? items : undefined;
-}
-
-export function normalizeProviderName(raw?: string): LlmProviderName {
-  const cleaned = (raw || "gemini").trim().toLowerCase();
-  if (
-    cleaned === "gemini" ||
-    cleaned === "openai" ||
-    cleaned === "anthropic" ||
-    cleaned === "mock"
-  ) {
-    return cleaned;
-  }
-  throw new Error(
-    `[Error] Unsupported LLM provider "${raw}". Supported providers: gemini, openai, anthropic, mock.`,
-  );
 }
 
 export function loadAppConfig(): AppConfig {

@@ -1,5 +1,22 @@
 export type AssignmentKind = "quiz" | "offline" | "other";
 
+export interface ParsedClass {
+  classId: string;
+  title: string;
+  teacherName?: string;
+  href: string;
+  courseCode?: string;
+  dueAssignmentsCount?: number;
+  lessonCount?: number;
+}
+
+export interface LmsSessionCheckResult {
+  valid: boolean;
+  status: number;
+  redirectedToLogin: boolean;
+  finalUrl?: string;
+}
+
 export interface ParsedAssignment {
   title: string;
   href: string;

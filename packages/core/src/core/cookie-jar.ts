@@ -47,6 +47,13 @@ export class SessionCookieJar {
       .join("; ");
   }
 
+  /**
+   * Returns cookie names only — never values. Safe for API responses/logs.
+   */
+  getCookieNames(): string[] {
+    return Array.from(this.cookies.keys());
+  }
+
   hasRealCookies(): boolean {
     return this.cookies.size > 0;
   }

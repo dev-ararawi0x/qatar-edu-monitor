@@ -8,10 +8,10 @@ It ships four workspace packages:
 | --- | --- | --- |
 | `@qatar-edu/core` | `packages/core` | Shared domain types, `LmsHttpClient` (with transport-level `/finish/` block), `SessionCookieJar`, `"VALUES"` sanitizer, URL builders, Cheerio parsers, LLM adapters, and quiz domain services. Zero CLI dependencies. |
 | `@qatar-edu/cli` | `apps/cli` | The existing CLI: entrypoint, command handlers, env config, and Arabic (`العربية`) Markdown report exporters. |
-| `@qatar-edu/api` | `apps/api` | Minimal Hono + Node.js skeleton with a single `GET /health` route. No business routes yet. |
-| `@qatar-edu/web` | `apps/web` | Minimal Vite + React + TypeScript + TanStack Router skeleton. No UI pages yet. |
+| `@qatar-edu/api` | `apps/api` | Hono API: better-auth (email/password, optional Microsoft OAuth), PostgreSQL + Drizzle, encrypted per-user LMS cookie & LLM settings, modular routes, and a Postgres-backed `SolveJobWorker` for background AI solving (apply + pause — never finish). |
+| `@qatar-edu/web` | `apps/web` | Arabic RTL React app (Tailwind v4 + shadcn-style UI, TanStack Router/Query, `hc<AppType>` RPC): dashboard, background-jobs monitor, quiz review/edit/finish, and settings. |
 
-The CLI provides read-only assignment, lesson, and quiz inspection; safe draft-saving with pause/resume protection; LLM-assisted quiz solving (dry-run by default); and automated Arabic Markdown reports.
+The CLI provides read-only assignment, lesson, and quiz inspection; safe draft-saving with pause/resume protection; LLM-assisted quiz solving (dry-run by default); and automated Arabic Markdown reports. The web platform adds email login, per-user LMS sessions, background solve jobs, and a human review → edit → explicit-finish flow.
 
 ---
 
@@ -95,8 +95,8 @@ LLM_API_KEY="VALUES"
 # Type-check every workspace package
 pnpm -r typecheck
 
-# Run core unit tests
-pnpm --filter @qatar-edu/core test
+# Run all workspace tests
+pnpm -r test
 
 # Build all packages
 pnpm -r build
@@ -109,11 +109,23 @@ pnpm cli -- --help
 pnpm quiz:inspect -- <url-or-id>
 pnpm quiz:draft -- <display-url>
 
-# Start the skeleton API (http://localhost:3001/health)
-pnpm api:dev
+# Platform — one command does everything:
+# ensures .env API vars, starts the Postgres container (docker or rootless
+# podman), generates + applies migrations, then runs API + web together.
+pnpm dev         # API http://localhost:3001 (+ embedded worker) + web http://localhost:5173
 
-# Start the skeleton web app (Vite dev server)
-pnpm web:dev
+# Production-ish run (builds web if needed, serves API + built web):
+pnpm build && pnpm start
+
+# Individual pieces (when you need them separately):
+pnpm setup       # only bootstrap .env + DB container/migrations
+pnpm db:up       # Postgres container + generate + migrate
+pnpm api:dev     # API + embedded worker only
+pnpm api:worker  # standalone worker (set ENABLE_EMBEDDED_WORKER=false to avoid dupes)
+pnpm web:dev     # web dev server only
+pnpm db:down     # stop the container (data persists in the volume)
+# After schema changes against an already-running DB:
+pnpm db:generate && pnpm db:migrate
 ```
 
 ### CLI Commands

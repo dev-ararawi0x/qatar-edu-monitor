@@ -7,6 +7,7 @@ import type {
   SanitizedHttpTrace,
 } from "../types/index.js";
 import { SessionCookieJar } from "./cookie-jar.js";
+import { ALLOW_EXPLICIT_HUMAN_FINISH } from "./finish-capability.js";
 import { isQuizFinishUrl } from "./lms-urls.js";
 import {
   MASK_VALUE,
@@ -90,9 +91,12 @@ export class LmsHttpClient {
       asMultipart = false,
     } = options;
 
-    if (isQuizFinishUrl(pathOrUrl)) {
+    if (
+      isQuizFinishUrl(pathOrUrl) &&
+      options[ALLOW_EXPLICIT_HUMAN_FINISH] !== true
+    ) {
       throw new Error(
-        `[Safety Guardrail] Blocked request to quiz finish endpoint: ${pathOrUrl}. Quiz submission is disabled.`,
+        `[Safety Guardrail] Blocked request to quiz finish endpoint: ${pathOrUrl}. Quiz submission is disabled unless explicitly authorized by a human-confirmed service.`,
       );
     }
 

@@ -119,6 +119,22 @@ export interface QuizDraftAttemptResult {
 
 export type QuizExecutionMode = "dry-run" | "draft" | "submit-ready";
 
+export type QuizSolverProgressStage =
+  | "llm_solved"
+  | "answer_posted"
+  | "summary_reached"
+  | "paused"
+  | "aborted";
+
+export interface QuizSolverProgressEvent {
+  stage: QuizSolverProgressStage;
+  part: number;
+  totalParts: number;
+  questionHeader?: string;
+  formattedSummary?: string;
+  status?: number;
+}
+
 export interface QuizSolveStepResult {
   part: number;
   questionHeader: string;

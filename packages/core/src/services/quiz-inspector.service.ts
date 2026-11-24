@@ -25,6 +25,7 @@ export interface ReadOnlyQuizPartsResult {
   questions: Array<{ part: number; totalParts: number; screen: ParsedQuizScreen }>;
   summaryItems: SummaryItem[];
   finishAction?: string;
+  summaryAuthToken?: string;
 }
 
 export async function fetchAllQuizPartsReadOnly(
@@ -79,6 +80,7 @@ export async function fetchAllQuizPartsReadOnly(
 
   const summaryItems: SummaryItem[] = [];
   let finishAction: string | undefined;
+  let summaryAuthToken: string | undefined;
   const questionParts: Array<{ part: number; totalParts: number; screen: ParsedQuizScreen }> = [];
 
   for (const item of screens) {
@@ -86,6 +88,9 @@ export async function fetchAllQuizPartsReadOnly(
       summaryItems.push(...item.screen.summaryItems);
       if (!finishAction && item.screen.finishAction) {
         finishAction = item.screen.finishAction;
+      }
+      if (!summaryAuthToken && item.screen.authenticityToken) {
+        summaryAuthToken = item.screen.authenticityToken;
       }
     } else {
       questionParts.push(item);
@@ -97,6 +102,7 @@ export async function fetchAllQuizPartsReadOnly(
     questions: questionParts,
     summaryItems,
     ...(finishAction ? { finishAction } : {}),
+    ...(summaryAuthToken ? { summaryAuthToken } : {}),
   };
 }
 

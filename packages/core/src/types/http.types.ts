@@ -1,3 +1,5 @@
+import type { ALLOW_EXPLICIT_HUMAN_FINISH } from "../core/finish-capability.js";
+
 export type HttpMethod = "GET" | "POST";
 
 export type HttpContentKind = "Redirect" | "JSON" | "HTML" | "Other";
@@ -27,6 +29,13 @@ export interface HttpRequestOptions {
   formFields?: Record<string, HttpFormFieldValue>;
   files?: HttpFileAttachment[];
   asMultipart?: boolean;
+  /**
+   * Internal-only capability: permits POSTing to the quiz /finish/ endpoint.
+   * Never set this from CLI flags, HTTP handlers, or user input — only the
+   * trusted `submitQuizFinishExplicitly` service may pass it after explicit
+   * human confirmation.
+   */
+  [ALLOW_EXPLICIT_HUMAN_FINISH]?: true;
 }
 
 export interface HttpResponse {

@@ -1,7 +1,2 @@
-import { Hono } from "hono";
-
-const app = new Hono();
-
-app.get("/health", (c) => c.json({ status: "ok", service: "@qatar-edu/api" }));
-
-export default app;
+export { default } from "./app.js";
+export type { AppType } from "./app.js";
