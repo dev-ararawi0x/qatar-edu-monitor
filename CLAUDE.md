@@ -6,34 +6,34 @@ Project guide and operational rules for Claude and AI coding assistants.
 
 ## 1. Quick Reference
 
-- **Project**: Modular TypeScript/Node.js CLI for Qatar Education LMS (`https://qeducation.edu.gov.qa`).
-- **Entry Point**: `src/cli.ts` (run with `npx tsx src/cli.ts <command> [options]`).
-- **Architecture Details**: See `docs/architecture.md` and `AGENTS.md`.
-- **Plan Document**: See `plans/architecture-and-refactoring-plan.md`.
+- **Project**: pnpm workspace monorepo for the Qatar Education LMS (`https://qeducation.edu.gov.qa`).
+- **Packages**:
+  - `packages/core` (`@qatar-edu/core`): shared domain, HTTP, cookies, sanitizer, URLs, parsers, LLM adapters, quiz services.
+  - `apps/cli` (`@qatar-edu/cli`): CLI entrypoint, commands, config, and Arabic Markdown exporters.
+  - `apps/api` (`@qatar-edu/api`): minimal Hono `/health` skeleton.
+  - `apps/web` (`@qatar-edu/web`): minimal Vite + React + TanStack Router skeleton.
+- **Docs**: `docs/architecture.md`, `AGENTS.md`, and `plans/architecture-and-refactoring-plan.md`.
 
 ---
 
 ## 2. Key Commands
 
 ```bash
-# Help & CLI Discovery
-npx tsx src/cli.ts --help
-npx tsx src/cli.ts quiz --help
+pnpm install
+pnpm -r typecheck
+pnpm --filter @qatar-edu/core test
+pnpm --filter @qatar-edu/cli exec tsx src/cli.ts --help
+pnpm --filter @qatar-edu/api dev
+pnpm --filter @qatar-edu/web dev
+pnpm -r build
+```
 
-# Read-Only Commands (GET only; pass --class-id <id> or --url <url> for class-scoped commands)
-npx tsx src/cli.ts assignments list --class-id <your-class-id>
-npx tsx src/cli.ts assignments due --class-id <your-class-id>
-npx tsx src/cli.ts lessons list --class-id <your-class-id>
-npx tsx src/cli.ts quiz inspect <showUrl|displayUrl|quizId>
-npx tsx src/cli.ts quiz scan --class-id <your-class-id>
-npx tsx src/cli.ts monitor [urls...]
+CLI examples:
 
-# Draft Saving (Dry-run by default; pass --apply to execute draft + pause)
-npx tsx src/cli.ts quiz draft <displayUrl> [--apply] [--answers '{"1":"..."}']
-
-# Verification
-npm run typecheck
-npm test
+```bash
+pnpm --filter @qatar-edu/cli exec tsx src/cli.ts assignments list --class-id <id>
+pnpm --filter @qatar-edu/cli exec tsx src/cli.ts quiz inspect <url-or-id>
+pnpm --filter @qatar-edu/cli exec tsx src/cli.ts quiz draft <display-url> --apply
 ```
 
 ---
@@ -41,21 +41,26 @@ npm test
 ## 3. Safety & Privacy Invariants
 
 1. **Secret Redaction (`"VALUES"`)**:
-   - Never read, print, log, or commit `.env` or real cookies/tokens.
-   - Always sanitize sensitive fields (`cookie`, `token`, `csrf`, `auth`, `password`, `secret`) to `"VALUES"` using `src/core/sanitizer.ts`.
+   - Never read, print, log, or commit `.env` or real cookies/tokens/LLM keys.
+   - Always sanitize sensitive fields to `"VALUES"` using `@qatar-edu/core` sanitizer utilities.
 2. **Quiz Safety Guardrails**:
-   - `quiz inspect` and `quiz scan` are strictly `GET`-only. Do not add `POST` logic to these commands.
-   - Do not start new quiz attempts unless `--start-new` is explicitly passed by the user.
-   - `quiz draft` MUST remain dry-run by default (requires `--apply` to send draft `POST`s and `/pause/`).
-   - NEVER call or allow calls to `/student_take_quiz_assignment/finish/`. `LmsHttpClient` enforces this block at the transport layer.
+   - `quiz inspect`, `quiz scan`, and `quiz solve` dry-run are GET-only.
+   - Do not start new quiz attempts unless `--start-new` is explicitly passed.
+   - `quiz draft` and `quiz solve` must remain dry-run by default.
+   - NEVER call or allow calls to `/student_take_quiz_assignment/finish/`; `LmsHttpClient` blocks it at transport level.
 
 ---
 
 ## 4. Code Structure
 
-- `src/types/`: TypeScript interfaces (`exactOptionalPropertyTypes`, `noUncheckedIndexedAccess`, `verbatimModuleSyntax` compliant).
-- `src/core/`: HTTP client (`LmsHttpClient`), cookie jar (`SessionCookieJar`), secret sanitizer (`sanitizer.ts`), URL utilities (`lms-urls.ts`), and env config (`config.ts`).
-- `src/parsers/`: Pure Cheerio parsers for assignments, lessons, quiz show/questions/summaries, and generic pages.
-- `src/exporters/`: Arabic Markdown report generators (`assignments`, `lessons`, `quiz`, `monitor`) and timestamped/`latest.md` writer.
-- `src/commands/`: Subcommand orchestrators (`assignments`, `lessons`, `quiz`, `monitor`).
-- `tests/`: Offline unit tests using `node:test` and `tsx`.
+- `packages/core/src/types/`: shared TypeScript interfaces.
+- `packages/core/src/core/`: HTTP client, cookie jar, sanitizer, URL builders.
+- `packages/core/src/parsers/`: pure Cheerio parsers.
+- `packages/core/src/llm/`: provider adapters, prompt builder, answer validator, retry helper.
+- `packages/core/src/services/`: quiz inspector, form mapper, solver workflow.
+- `apps/cli/src/cli/`: CLI entrypoint, handlers, flags, help.
+- `apps/cli/src/commands/`: command orchestrators.
+- `apps/cli/src/exporters/`: Arabic Markdown report generators and writer.
+- `apps/cli/src/config.ts`: dotenv/env config and command context.
+- `apps/api/src/`: Hono API skeleton (`/health`).
+- `apps/web/src/`: Vite/React/TanStack Router skeleton.

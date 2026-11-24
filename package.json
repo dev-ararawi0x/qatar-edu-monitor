@@ -1,42 +1,25 @@
 {
   "name": "qatar-edu-monitor",
-  "version": "2.0.0",
-  "description": "Modular Qatar Education LMS CLI monitor with sanitized logging and Arabic Markdown reports",
+  "version": "0.2.0",
+  "private": true,
   "type": "module",
-  "main": "dist/src/cli.js",
-  "bin": {
-    "qedu": "dist/src/cli.js"
-  },
   "scripts": {
-    "cli": "tsx src/cli.ts",
-    "monitor": "tsx src/cli.ts monitor",
-    "assignments:list": "tsx src/cli.ts assignments list",
-    "assignments:due": "tsx src/cli.ts assignments due",
-    "lessons:list": "tsx src/cli.ts lessons list",
-    "quiz:inspect": "tsx src/cli.ts quiz inspect",
-    "quiz:scan": "tsx src/cli.ts quiz scan",
-    "quiz:draft": "tsx src/cli.ts quiz draft",
-    "quiz:solve": "tsx src/cli.ts quiz solve",
-    "typecheck": "tsc --noEmit",
-    "test": "node --import tsx --test tests/*.test.ts",
-    "build": "tsc"
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm --filter @qatar-edu/core test",
+    "cli": "pnpm --filter @qatar-edu/cli cli",
+    "monitor": "pnpm --filter @qatar-edu/cli monitor",
+    "assignments:list": "pnpm --filter @qatar-edu/cli assignments:list",
+    "assignments:due": "pnpm --filter @qatar-edu/cli assignments:due",
+    "lessons:list": "pnpm --filter @qatar-edu/cli lessons:list",
+    "quiz:inspect": "pnpm --filter @qatar-edu/cli quiz:inspect",
+    "quiz:scan": "pnpm --filter @qatar-edu/cli quiz:scan",
+    "quiz:draft": "pnpm --filter @qatar-edu/cli quiz:draft",
+    "quiz:solve": "pnpm --filter @qatar-edu/cli quiz:solve",
+    "api:dev": "pnpm --filter @qatar-edu/api dev",
+    "api:start": "pnpm --filter @qatar-edu/api start",
+    "web:dev": "pnpm --filter @qatar-edu/web dev",
+    "build": "pnpm -r build",
+    "clean": "pnpm -r exec rm -rf dist"
   },
-  "keywords": [
-    "lms",
-    "qatar-education",
-    "cheerio",
-    "typescript",
-    "cli"
-  ],
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "cheerio": "^1.2.0",
-    "dotenv": "^18.0.10"
-  },
-  "devDependencies": {
-    "@types/node": "^26.6.6",
-    "tsx": "^4.23.15",
-    "typescript": "^7.0.2"
-  }
+  "packageManager": "pnpm@10.12.1"
 }

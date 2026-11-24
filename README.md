@@ -1,6 +1,6 @@
 # Qatar Education Monitor (`qatar-edu-monitor`)
 
-A modular, safety-first TypeScript / Node.js CLI tool for inspecting and monitoring the Qatar Education LMS. It provides read-only assignment, lesson, and quiz inspection, safe draft-saving with pause/resume protection, and automated Arabic (`العربية`) Markdown reports.
+A pnpm-workspace monorepo with a safety-first TypeScript / Node.js CLI, shared LMS core package, minimal API skeleton, and minimal web skeleton for inspecting and monitoring the Qatar Education LMS. It provides read-only assignment, lesson, and quiz inspection, safe draft-saving with pause/resume protection, and automated Arabic (`العربية`) Markdown reports.
 
 ---
 
@@ -21,7 +21,7 @@ A modular, safety-first TypeScript / Node.js CLI tool for inspecting and monitor
 ## Prerequisites
 
 - **Node.js**: v18+ (v22+ recommended)
-- **npm**: v9+ (comes with Node.js)
+- **pnpm**: v10+ (`corepack enable` or `pnpm install -g pnpm`)
 - **TypeScript**: Included as a dev dependency (no global install needed)
 
 ---
@@ -36,7 +36,7 @@ git clone https://github.com/dev-ararawi0x/qatar-edu-monitor.git qatar-edu-monit
 cd qatar-edu-monitor
 
 # Install dependencies
-npm install
+pnpm install
 
 # Copy environment template and configure your session
 cp .env.example .env
@@ -50,7 +50,7 @@ git clone https://github.com/dev-ararawi0x/qatar-edu-monitor.git qatar-edu-monit
 cd qatar-edu-monitor
 
 # Install dependencies
-npm install
+pnpm install
 
 # Copy environment template and configure your session
 copy .env.example .env
@@ -84,19 +84,26 @@ LMS_CLASS_ID="YOUR_CLASS_ID"
 
 ---
 
+## Workspace Layout
+
+- `packages/core`: shared LMS types, HTTP client, cookie jar, sanitizer, URL builders, Cheerio parsers, LLM adapters/services, and quiz domain services.
+- `apps/cli`: existing CLI commands, flag parsing, and Arabic Markdown exporters.
+- `apps/api`: minimal Hono `/health` API skeleton.
+- `apps/web`: minimal Vite + React + TanStack Router placeholder.
+
 ## Usage
 
 ### Unified CLI Entry Point
 
 ```bash
 # Show all commands and safety guardrails
-npx tsx src/cli.ts --help
+pnpm --filter @qatar-edu/cli exec tsx src/cli.ts --help
 
 # Show help for a specific command group
-npx tsx src/cli.ts assignments --help
-npx tsx src/cli.ts lessons --help
-npx tsx src/cli.ts quiz --help
-npx tsx src/cli.ts monitor --help
+pnpm --filter @qatar-edu/cli exec tsx src/cli.ts assignments --help
+pnpm --filter @qatar-edu/cli exec tsx src/cli.ts lessons --help
+pnpm --filter @qatar-edu/cli exec tsx src/cli.ts quiz --help
+pnpm --filter @qatar-edu/cli exec tsx src/cli.ts monitor --help
 ```
 
 ### Assignments & Lessons (Read-Only `GET`)
@@ -105,47 +112,47 @@ These commands require either `--class-id <id>` or `--url <fullUrl>`.
 
 ```bash
 # List all assignments for a class
-npx tsx src/cli.ts assignments list --class-id <your-class-id>
+pnpm --filter @qatar-edu/cli exec tsx src/cli.ts assignments list --class-id <your-class-id>
 
 # List due assignments / quizzes
-npx tsx src/cli.ts assignments due --class-id <your-class-id>
+pnpm --filter @qatar-edu/cli exec tsx src/cli.ts assignments due --class-id <your-class-id>
 
 # Or use a custom URL directly
-npx tsx src/cli.ts assignments due --url "https://<your-lms>.edu.gov.qa/student_assignments/due/<your-class-id>"
+pnpm --filter @qatar-edu/cli exec tsx src/cli.ts assignments due --url "https://<your-lms>.edu.gov.qa/student_assignments/due/<your-class-id>"
 
 # List lessons and sections
-npx tsx src/cli.ts lessons list --class-id <your-class-id>
+pnpm --filter @qatar-edu/cli exec tsx src/cli.ts lessons list --class-id <your-class-id>
 ```
 
 ### Quiz Inspection & Scanning (Read-Only `GET`)
 
 ```bash
 # Inspect a specific quiz by show URL, display URL, or quiz ID
-npx tsx src/cli.ts quiz inspect "https://<your-lms>.edu.gov.qa/student_quiz_assignment/show/<quiz-id>"
-npx tsx src/cli.ts quiz inspect "https://<your-lms>.edu.gov.qa/student_take_quiz_assignment/display/<quiz-id>?part=1&results=<results-id>"
-npx tsx src/cli.ts quiz inspect <quiz-id>
+pnpm --filter @qatar-edu/cli exec tsx src/cli.ts quiz inspect "https://<your-lms>.edu.gov.qa/student_quiz_assignment/show/<quiz-id>"
+pnpm --filter @qatar-edu/cli exec tsx src/cli.ts quiz inspect "https://<your-lms>.edu.gov.qa/student_take_quiz_assignment/display/<quiz-id>?part=1&results=<results-id>"
+pnpm --filter @qatar-edu/cli exec tsx src/cli.ts quiz inspect <quiz-id>
 
 # Scan all due quizzes for a class (skips unstarted attempts by default)
-npx tsx src/cli.ts quiz scan --class-id <your-class-id>
+pnpm --filter @qatar-edu/cli exec tsx src/cli.ts quiz scan --class-id <your-class-id>
 
 # Opt-in to inspect newly started attempts (still GET only)
-npx tsx src/cli.ts quiz scan --class-id <your-class-id> --start-new
+pnpm --filter @qatar-edu/cli exec tsx src/cli.ts quiz scan --class-id <your-class-id> --start-new
 ```
 
 ### Quiz Draft Saving (Dry-Run by Default)
 
 ```bash
 # Preview what would be sent (NO POST requests are made)
-npx tsx src/cli.ts quiz draft "https://<your-lms>.edu.gov.qa/student_take_quiz_assignment/display/<quiz-id>?part=1&results=<results-id>"
+pnpm --filter @qatar-edu/cli exec tsx src/cli.ts quiz draft "https://<your-lms>.edu.gov.qa/student_take_quiz_assignment/display/<quiz-id>?part=1&results=<results-id>"
 
 # Provide custom answers as a JSON string mapping part numbers to answers
-npx tsx src/cli.ts quiz draft <display-url> --answers '{"1":"Answer text","2":"4"}'
+pnpm --filter @qatar-edu/cli exec tsx src/cli.ts quiz draft <display-url> --answers '{"1":"Answer text","2":"4"}'
 
 # Actually save draft answers and pause the attempt (requires --apply)
-npx tsx src/cli.ts quiz draft <display-url> --apply --answers '{"1":"Answer text"}'
+pnpm --filter @qatar-edu/cli exec tsx src/cli.ts quiz draft <display-url> --apply --answers '{"1":"Answer text"}'
 
 # Allow timed quizzes (aborts by default if timed_quiz=true)
-npx tsx src/cli.ts quiz draft <display-url> --apply --allow-timed
+pnpm --filter @qatar-edu/cli exec tsx src/cli.ts quiz draft <display-url> --apply --allow-timed
 ```
 
 **Safety**: `quiz draft` never calls `/student_take_quiz_assignment/finish/`. The `/finish/` endpoint is blocked at the HTTP client level.
@@ -154,12 +161,12 @@ npx tsx src/cli.ts quiz draft <display-url> --apply --allow-timed
 
 ```bash
 # Monitor default dashboard or custom URLs
-npx tsx src/cli.ts monitor
-npx tsx src/cli.ts monitor "https://<your-lms>.edu.gov.qa/student_assignments/list/<your-class-id>"
-npx tsx src/cli.ts monitor "https://<your-lms>.edu.gov.qa/student_quiz_assignment/show/<quiz-id>"
+pnpm --filter @qatar-edu/cli exec tsx src/cli.ts monitor
+pnpm --filter @qatar-edu/cli exec tsx src/cli.ts monitor "https://<your-lms>.edu.gov.qa/student_assignments/list/<your-class-id>"
+pnpm --filter @qatar-edu/cli exec tsx src/cli.ts monitor "https://<your-lms>.edu.gov.qa/student_quiz_assignment/show/<quiz-id>"
 
 # Custom CSS selector for DOM extraction
-npx tsx src/cli.ts monitor <url> --selector "#mainContent .question"
+pnpm --filter @qatar-edu/cli exec tsx src/cli.ts monitor <url> --selector "#mainContent .question"
 ```
 
 ---
@@ -201,13 +208,13 @@ Open `reports/<command>/latest.md` for the most recent run of that command.
 
 ```bash
 # Type-check the project (must pass with 0 errors)
-npm run typecheck
+pnpm -r typecheck
 
 # Run offline unit tests (sanitizer, parsers, exporters, safety guards)
-npm test
+pnpm --filter @qatar-edu/core test
 
 # Build compiled JavaScript to dist/
-npm run build
+pnpm -r build
 ```
 
 ---
