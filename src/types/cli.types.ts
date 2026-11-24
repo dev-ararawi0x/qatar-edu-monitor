@@ -1,3 +1,5 @@
+import type { LlmProviderConfig } from "./llm.types.js";
+
 export interface GlobalCliOptions {
   help?: boolean;
   quiet?: boolean;
@@ -13,6 +15,7 @@ export interface CommandContext {
   quiet: boolean;
   writeReport: boolean;
   outDir?: string;
+  llm?: LlmProviderConfig;
 }
 
 export interface CommandResult {

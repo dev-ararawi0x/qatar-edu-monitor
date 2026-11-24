@@ -1,7 +1,9 @@
 import type {
+  BinaryHttpResponse,
   HttpContentKind,
   HttpRequestOptions,
   HttpResponse,
+  SanitizedFileAttachmentMeta,
   SanitizedHttpTrace,
 } from "../types/index.js";
 import { SessionCookieJar } from "./cookie-jar.js";
@@ -33,20 +35,29 @@ export function detectKind(
   return "Other";
 }
 
+function getAttachmentByteLength(content: string | Uint8Array): number {
+  return typeof content === "string"
+    ? Buffer.byteLength(content, "utf8")
+    : content.byteLength;
+}
+
 export class LmsHttpClient {
   public readonly cookieJar: SessionCookieJar;
   public readonly baseUrl: string;
   public readonly traces: SanitizedHttpTrace[] = [];
   private readonly quiet: boolean;
+  private readonly fetchImpl: typeof fetch;
 
   constructor(
     baseUrl: string,
     initialCookie = "VALUES",
     quiet = false,
+    fetchImpl: typeof fetch = globalThis.fetch,
   ) {
     this.baseUrl = baseUrl.replace(/\/$/, "");
     this.cookieJar = new SessionCookieJar(initialCookie);
     this.quiet = quiet;
+    this.fetchImpl = fetchImpl;
   }
 
   resolveUrl(pathOrUrl: string): string {
@@ -61,6 +72,7 @@ export class LmsHttpClient {
       isAjax = false,
       csrfHeaderToken,
       formFields,
+      files,
       asMultipart = false,
     } = options;
 
@@ -93,18 +105,45 @@ export class LmsHttpClient {
       headers["X-CSRF-Token"] = csrfHeaderToken;
     }
 
+    const hasFiles = Boolean(files && files.length > 0);
+    const useMultipart = asMultipart || hasFiles;
+
     let bodyPayload: BodyInit | undefined;
-    if (method === "POST" && formFields) {
-      if (asMultipart) {
+    if (method === "POST" && (formFields || hasFiles)) {
+      if (useMultipart) {
         const fd = new FormData();
-        for (const [k, v] of Object.entries(formFields)) {
-          fd.append(k, v);
+        if (formFields) {
+          for (const [k, v] of Object.entries(formFields)) {
+            if (Array.isArray(v)) {
+              for (const item of v) {
+                fd.append(k, item);
+              }
+            } else {
+              fd.append(k, v);
+            }
+          }
+        }
+        if (files) {
+          for (const f of files) {
+            const blobPart =
+              typeof f.content === "string"
+                ? f.content
+                : new Uint8Array(f.content);
+            const blob = new Blob([blobPart], { type: f.mimeType });
+            fd.append(f.fieldName, blob, f.fileName);
+          }
         }
         bodyPayload = fd;
-      } else {
+      } else if (formFields) {
         const params = new URLSearchParams();
         for (const [k, v] of Object.entries(formFields)) {
-          params.append(k, v);
+          if (Array.isArray(v)) {
+            for (const item of v) {
+              params.append(k, item);
+            }
+          } else {
+            params.append(k, v);
+          }
         }
         headers["Content-Type"] =
           "application/x-www-form-urlencoded; charset=UTF-8";
@@ -112,10 +151,20 @@ export class LmsHttpClient {
       }
     }
 
+    const sanitizedFiles: SanitizedFileAttachmentMeta[] | undefined =
+      files && files.length > 0
+        ? files.map((f) => ({
+            fieldName: f.fieldName,
+            fileName: sanitizeText(f.fileName),
+            mimeType: f.mimeType,
+            sizeBytes: getAttachmentByteLength(f.content),
+          }))
+        : undefined;
+
     if (!this.quiet) {
       console.log("========================================");
       console.log(`[Time]       ${timestamp}`);
-      console.log(`[Request]    ${method} ${fullUrl}`);
+      console.log(`[Request]    ${method} ${sanitizeText(fullUrl)}`);
       console.log(
         `[Cookie]     ${this.cookieJar.hasRealCookies() ? "VALUES (loaded)" : "VALUES (empty)"}`,
       );
@@ -124,15 +173,18 @@ export class LmsHttpClient {
       }
       if (formFields) {
         console.log(
-          `[Form Body]  (${asMultipart ? "multipart/form-data" : "urlencoded"}):`,
+          `[Form Body]  (${useMultipart ? "multipart/form-data" : "urlencoded"}):`,
           sanitizeFields(formFields),
         );
+      }
+      if (sanitizedFiles) {
+        console.log(`[Files]     `, sanitizedFiles);
       }
     }
 
     let response: Response;
     try {
-      response = await fetch(fullUrl, {
+      response = await this.fetchImpl(fullUrl, {
         method,
         headers,
         body: bodyPayload ?? null,
@@ -141,8 +193,8 @@ export class LmsHttpClient {
     } catch (err) {
       const elapsedMs = Math.round(performance.now() - start);
       if (!this.quiet) {
-        console.error(`[Network Error] ${method} ${fullUrl} (${elapsedMs}ms)`);
-        console.error(err);
+        console.error(`[Network Error] ${method} ${sanitizeText(fullUrl)} (${elapsedMs}ms)`);
+        console.error(err instanceof Error ? sanitizeText(err.message) : String(err));
         console.log("========================================\n");
       }
       throw err;
@@ -166,8 +218,8 @@ export class LmsHttpClient {
     const trace: SanitizedHttpTrace = {
       timestamp,
       method,
-      url: fullUrl,
-      referer,
+      url: sanitizeText(fullUrl),
+      referer: sanitizeText(referer),
       status: response.status,
       statusText: response.statusText,
       elapsedMs,
@@ -178,6 +230,7 @@ export class LmsHttpClient {
       sizeBytes: Buffer.byteLength(body, "utf8"),
       hasCookies: this.cookieJar.hasRealCookies(),
       ...(sanitizedFields ? { formFields: sanitizedFields } : {}),
+      ...(sanitizedFiles ? { fileAttachments: sanitizedFiles } : {}),
     };
     this.traces.push(trace);
 
@@ -205,5 +258,78 @@ export class LmsHttpClient {
       body,
       elapsedMs,
     };
+  }
+
+  async fetchBinary(
+    pathOrUrl: string,
+    referer = `${this.baseUrl}/user_dashboard`,
+  ): Promise<BinaryHttpResponse | null> {
+    if (isQuizFinishUrl(pathOrUrl)) {
+      throw new Error(
+        `[Safety Guardrail] Blocked request to quiz finish endpoint: ${pathOrUrl}. Quiz submission is disabled.`,
+      );
+    }
+
+    const fullUrl = this.resolveUrl(pathOrUrl);
+    const timestamp = new Date().toISOString();
+    const start = performance.now();
+
+    const headers: Record<string, string> = {
+      "User-Agent":
+        "Mozilla/5.0 (X11; Linux x86_64; rv:160.0) Gecko/20100101 Firefox/160.0",
+      Accept: "image/*,*/*;q=0.8",
+      "Accept-Language": "ar,en-US;q=0.9,en;q=0.8",
+      Referer: referer,
+      Origin: this.baseUrl,
+      Cookie: this.cookieJar.toCookieHeader(),
+    };
+
+    try {
+      const response = await this.fetchImpl(fullUrl, {
+        method: "GET",
+        headers,
+        redirect: "follow",
+      });
+      const elapsedMs = Math.round(performance.now() - start);
+      const rawSetCookies =
+        typeof response.headers.getSetCookie === "function"
+          ? response.headers.getSetCookie()
+          : [];
+      const updatedCookies = this.cookieJar.ingestSetCookieHeaders(rawSetCookies);
+      const contentType = response.headers.get("content-type") || "application/octet-stream";
+
+      const arrayBuf = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuf);
+
+      this.traces.push({
+        timestamp,
+        method: "GET",
+        url: sanitizeText(fullUrl),
+        referer: sanitizeText(referer),
+        status: response.status,
+        statusText: response.statusText,
+        elapsedMs,
+        contentType,
+        kind: "Other",
+        updatedCookieNames: updatedCookies,
+        sizeBytes: buffer.byteLength,
+        hasCookies: this.cookieJar.hasRealCookies(),
+      });
+
+      if (response.status < 200 || response.status >= 300) {
+        return null;
+      }
+
+      return {
+        status: response.status,
+        statusText: response.statusText,
+        contentType,
+        base64: buffer.toString("base64"),
+        sizeBytes: buffer.byteLength,
+        elapsedMs,
+      };
+    } catch {
+      return null;
+    }
   }
 }

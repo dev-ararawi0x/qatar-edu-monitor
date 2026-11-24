@@ -16,6 +16,7 @@
     "quiz:inspect": "tsx src/cli.ts quiz inspect",
     "quiz:scan": "tsx src/cli.ts quiz scan",
     "quiz:draft": "tsx src/cli.ts quiz draft",
+    "quiz:solve": "tsx src/cli.ts quiz solve",
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test tests/*.test.ts",
     "build": "tsc"

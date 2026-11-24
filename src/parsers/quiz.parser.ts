@@ -2,14 +2,14 @@ import * as cheerio from "cheerio";
 import type {
   InitQuizConfig,
   ParsedQuizScreen,
-  ParsedQuestionScreen,
   ParsedSummaryScreen,
   QuestionChoice,
   QuestionFieldDetail,
   QuizInputType,
   QuizShowInfo,
+  SelectOption,
 } from "../types/index.js";
-import { cleanText, extractQueryParam } from "./shared.js";
+import { cleanText } from "./shared.js";
 
 export function parseQuizShowPage(html: string): QuizShowInfo {
   const $ = cheerio.load(html);
@@ -29,7 +29,10 @@ export function parseQuizShowPage(html: string): QuizShowInfo {
 
   const isResumeAttempt =
     (actionButtonHref ? actionButtonHref.includes("results=") : false) ||
-    (actionButtonText ? actionButtonText.includes("استئناف") || actionButtonText.toLowerCase().includes("resume") : false);
+    (actionButtonText
+      ? actionButtonText.includes("استئناف") ||
+        actionButtonText.toLowerCase().includes("resume")
+      : false);
 
   const sidebarDetails: string[] = [];
   $("aside.rightColumn .block li, aside.rightColumn .block p").each((_, el) => {
@@ -74,10 +77,53 @@ export function parseInitQuizConfig(html: string): InitQuizConfig | null {
   };
 }
 
-function isAnswerFieldName(name: string): boolean {
+export function isAnswerFieldName(name: string): boolean {
   if (!name) return false;
   const lower = name.toLowerCase();
-  return lower === "answer" || lower.startsWith("answer[") || lower === "answers" || lower.startsWith("answers[");
+  return (
+    lower === "answer" ||
+    lower.startsWith("answer[") ||
+    lower === "answers" ||
+    lower.startsWith("answers[") ||
+    lower.startsWith("answer_file")
+  );
+}
+
+function extractFieldContextLabel(
+  $: cheerio.CheerioAPI,
+  activeForm: ReturnType<cheerio.CheerioAPI>,
+  fieldRef: ReturnType<cheerio.CheerioAPI>,
+  name: string,
+): string | undefined {
+  const id = fieldRef.attr("id");
+  if (id) {
+    const explicitLabel = cleanText(activeForm.find(`label[for="${id}"]`).first().text());
+    if (explicitLabel) return explicitLabel;
+  }
+
+  const wrappingLabel = cleanText(fieldRef.closest("label").text());
+  if (wrappingLabel) return wrappingLabel;
+
+  const prevLabel = cleanText(fieldRef.prev("label").text());
+  if (prevLabel) return prevLabel;
+
+  const container = fieldRef.closest("p, li, tr, .blank_row, .question_item").first();
+  if (container.length > 0) {
+    const clone = container.clone();
+    clone.find("input, select, textarea").each((_, inputNode) => {
+      if (inputNode.type !== "tag") return;
+      const inputName = $(inputNode).attr("name") || "";
+      if (inputName === name) {
+        $(inputNode).replaceWith(` [BLANK: ${name}] `);
+      } else {
+        $(inputNode).replaceWith(" [...] ");
+      }
+    });
+    const snippet = cleanText(clone.text()).slice(0, 180);
+    if (snippet) return snippet;
+  }
+
+  return undefined;
 }
 
 export function parseQuizScreen(htmlOrFragment: string): ParsedQuizScreen {
@@ -140,7 +186,10 @@ export function parseQuizScreen(htmlOrFragment: string): ParsedQuizScreen {
 
   const points = cleanText($(".quiz_points").first().text());
   const promptContainer = activeForm.find(".materialStyle").first();
-  const promptText = cleanText(promptContainer.text() || activeForm.find("h2, h3, .question_prompt, .materialStyle").first().text());
+  const promptText = cleanText(
+    promptContainer.text() ||
+      activeForm.find("h2, h3, .question_prompt, .materialStyle").first().text(),
+  );
 
   const imageUrls: string[] = [];
   activeForm.find("img").each((_, img) => {
@@ -159,6 +208,7 @@ export function parseQuizScreen(htmlOrFragment: string): ParsedQuizScreen {
   let hasFileUpload = false;
 
   activeForm.find("input[name], textarea[name], select[name]").each((_, el) => {
+    if (el.type !== "tag") return;
     const name = $(el).attr("name");
     if (!name) return;
     if (!formFieldNames.includes(name)) {
@@ -167,7 +217,21 @@ export function parseQuizScreen(htmlOrFragment: string): ParsedQuizScreen {
 
     const tagName = el.tagName.toLowerCase() as QuestionFieldDetail["tagName"];
     const type = ($(el).attr("type") || "").toLowerCase();
-    const value = ($(el).attr("value") as string) ?? ($(el).val() as string) ?? "";
+
+    let value = "";
+    if (tagName === "textarea") {
+      value = $(el).text() || ($(el).val() as string) || "";
+    } else if (tagName === "select") {
+      const selectedOpt = $(el).find("option:selected").first();
+      value =
+        selectedOpt.attr("value") ??
+        cleanText(selectedOpt.text()) ??
+        ($(el).val() as string) ??
+        "";
+    } else {
+      value = ($(el).attr("value") as string) ?? ($(el).val() as string) ?? "";
+    }
+
     const checked = $(el).is(":checked");
     const classAttr = ($(el).attr("class") || "").toLowerCase();
     const hasEditor =
@@ -203,13 +267,34 @@ export function parseQuizScreen(htmlOrFragment: string): ParsedQuizScreen {
     }
 
     let options: string[] | undefined;
+    let selectOptions: SelectOption[] | undefined;
     if (tagName === "select") {
-      options = $(el)
+      const parsedOpts: SelectOption[] = [];
+      $(el)
         .find("option")
-        .map((_, opt) => cleanText($(opt).text()) || ($(opt).attr("value") ?? ""))
-        .get()
-        .filter(Boolean);
+        .each((_, opt) => {
+          if (opt.type !== "tag") return;
+          const optLabel = cleanText($(opt).text());
+          const optValue = $(opt).attr("value") ?? optLabel;
+          const isSelected = $(opt).is(":selected") || $(opt).attr("selected") !== undefined;
+          if (optLabel || optValue) {
+            parsedOpts.push({
+              value: optValue,
+              label: optLabel || optValue,
+              selected: isSelected,
+            });
+          }
+        });
+      if (parsedOpts.length > 0) {
+        selectOptions = parsedOpts;
+        options = parsedOpts.map((o) => o.label || o.value).filter(Boolean);
+      }
     }
+
+    const contextLabel =
+      isAnswer && type !== "hidden"
+        ? extractFieldContextLabel($, activeForm, $(el), name)
+        : undefined;
 
     fieldDetails.push({
       name,
@@ -218,6 +303,8 @@ export function parseQuizScreen(htmlOrFragment: string): ParsedQuizScreen {
       ...(typeof value === "string" && value ? { value } : {}),
       ...(checked ? { checked: true } : {}),
       ...(options && options.length > 0 ? { options } : {}),
+      ...(selectOptions && selectOptions.length > 0 ? { selectOptions } : {}),
+      ...(contextLabel ? { contextLabel } : {}),
     });
   });
 
@@ -228,6 +315,7 @@ export function parseQuizScreen(htmlOrFragment: string): ParsedQuizScreen {
   if (fileContainers.length > 0) {
     hasFileUpload = true;
     fileContainers.each((_, el) => {
+      if (el.type !== "tag") return;
       const fName = $(el).attr("name");
       if (fName && !fileInputNames.includes(fName)) {
         fileInputNames.push(fName);
@@ -237,41 +325,66 @@ export function parseQuizScreen(htmlOrFragment: string): ParsedQuizScreen {
 
   // Also check rich text editors inside form
   if (
-    activeForm.find("textarea.hasEditor, textarea.cke_source, .cke_editable, [contenteditable='true']").length > 0
+    activeForm.find(
+      "textarea.hasEditor, textarea.cke_source, .cke_editable, [contenteditable='true']",
+    ).length > 0
   ) {
     hasRichTextEditor = true;
     hasPlainTextInput = true;
   }
 
-  // Choice inputs: radio or checkbox, matching either name="answer" or name^="answer["
-  const radioInputs = activeForm.find('input[type="radio"][name="answer"], input[type="radio"][name^="answer["]');
-  const checkboxInputs = activeForm.find('input[type="checkbox"][name="answer"], input[type="checkbox"][name^="answer["]');
+  // Choice inputs: radio or checkbox, matching answer / answer[...] / answers / answers[...]
+  const radioInputs = activeForm.find(
+    'input[type="radio"][name="answer"], input[type="radio"][name^="answer["], input[type="radio"][name="answers"], input[type="radio"][name^="answers["]',
+  );
+  const checkboxInputs = activeForm.find(
+    'input[type="checkbox"][name="answer"], input[type="checkbox"][name^="answer["], input[type="checkbox"][name="answers"], input[type="checkbox"][name^="answers["]',
+  );
 
   if (radioInputs.length > 0) {
     radioInputs.each((_, r) => {
+      if (r.type !== "tag") return;
       const id = $(r).attr("id");
-      const name = $(r).attr("name") || "answer";
+      const fieldName = $(r).attr("name") || "answer";
       const value = $(r).attr("value") || "";
       const checked = $(r).is(":checked");
       const label = id
         ? cleanText(activeForm.find(`label[for="${id}"]`).text())
         : cleanText($(r).closest("label").text());
-      choices.push({ value, label: label || value, checked });
+      choices.push({ value, label: label || value, checked, fieldName });
     });
   } else if (checkboxInputs.length > 0) {
     checkboxInputs.each((_, cb) => {
+      if (cb.type !== "tag") return;
       const id = $(cb).attr("id");
-      const name = $(cb).attr("name") || "answer";
+      const fieldName = $(cb).attr("name") || "answer[]";
       const value = $(cb).attr("value") || "";
       const checked = $(cb).is(":checked");
       const label = id
         ? cleanText(activeForm.find(`label[for="${id}"]`).text())
         : cleanText($(cb).closest("label").text());
-      choices.push({ value, label: label || value, checked });
+      choices.push({ value, label: label || value, checked, fieldName });
     });
   }
 
-  // Determine inputType
+  // Determine inputType accurately even when multi-blank inputs are currently empty
+  const fillableAnswerFields = fieldDetails.filter(
+    (f) =>
+      isAnswerFieldName(f.name) &&
+      (f.tagName === "textarea" ||
+        f.tagName === "select" ||
+        (f.tagName === "input" &&
+          f.type !== "radio" &&
+          f.type !== "checkbox" &&
+          f.type !== "hidden" &&
+          f.type !== "file")),
+  );
+  const distinctAnswerFieldNames = Array.from(
+    new Set(fillableAnswerFields.map((f) => f.name)),
+  );
+  const hasBracketedFillable = distinctAnswerFieldNames.some((n) => n.includes("["));
+  const hasSelect = fillableAnswerFields.some((f) => f.tagName === "select");
+
   let inputType: QuizInputType = "unknown";
   if (hasFileUpload && choices.length === 0) {
     inputType = "file_upload";
@@ -279,10 +392,11 @@ export function parseQuizScreen(htmlOrFragment: string): ParsedQuizScreen {
     const isMultiple = checkboxInputs.length > 0 && radioInputs.length === 0;
     inputType = isMultiple ? "multiple_choice" : "single_choice";
   } else if (hasPlainTextInput) {
-    // If there are multiple distinct answer[<index>] fields or select dropdowns, classify as structured_input
-    const indexedAnswerNames = Object.keys(structuredAnswers);
-    const hasSelect = fieldDetails.some((f) => f.tagName === "select" && isAnswerFieldName(f.name));
-    if (indexedAnswerNames.length > 1 || hasSelect) {
+    if (
+      distinctAnswerFieldNames.length > 1 ||
+      hasSelect ||
+      (hasBracketedFillable && !hasRichTextEditor)
+    ) {
       inputType = "structured_input";
     } else {
       inputType = "free_text";

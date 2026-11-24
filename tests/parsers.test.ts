@@ -200,6 +200,55 @@ test("parseQuizScreen parses indexed array fields answer[1], answer[2] and selec
     assert.ok(selectField);
     assert.equal(selectField?.tagName, "select");
     assert.deepEqual(selectField?.options, ["التعريف أ", "التعريف ب"]);
+    assert.deepEqual(selectField?.selectOptions, [
+      { value: "opt_a", label: "التعريف أ", selected: false },
+      { value: "opt_b", label: "التعريف ب", selected: true },
+    ]);
+  }
+});
+
+test("parseQuizScreen classifies empty multi-blank complete-the-space inputs as structured_input with contextLabel", () => {
+  const html = `
+    <form id="question_form" action="/student_take_quiz_assignment/next/15479350" method="post">
+      <input type="hidden" name="authenticity_token" value="token_blank">
+      <h2 class="quiz_question">السؤال 3: أكمل الفراغات التالية</h2>
+      <div class="materialStyle">
+        <p>عاصمة دولة قطر هي <input type="text" name="answer[1]" value=""> وعملتها الرسمية هي <input type="text" name="answer[2]" value="">.</p>
+      </div>
+    </form>
+  `;
+
+  const screen = parseQuizScreen(html);
+  assert.equal(screen.stage, "question");
+  if (screen.stage === "question") {
+    assert.equal(screen.inputType, "structured_input");
+    const blank1 = screen.fieldDetails.find((f) => f.name === "answer[1]");
+    const blank2 = screen.fieldDetails.find((f) => f.name === "answer[2]");
+    assert.ok(blank1?.contextLabel?.includes("[BLANK: answer[1]]"));
+    assert.ok(blank2?.contextLabel?.includes("[BLANK: answer[2]]"));
+  }
+});
+
+test("parseQuizScreen parses multiple_choice checkboxes with fieldName answer[]", () => {
+  const html = `
+    <form id="question_form" action="/student_take_quiz_assignment/next/15479350" method="post">
+      <h2 class="quiz_question">Question 2</h2>
+      <div class="materialStyle"><p>Select all prime numbers:</p></div>
+      <input type="checkbox" id="cb1" name="answer[]" value="2">
+      <label for="cb1">2</label>
+      <input type="checkbox" id="cb2" name="answer[]" value="4">
+      <label for="cb2">4</label>
+      <input type="checkbox" id="cb3" name="answer[]" value="5">
+      <label for="cb3">5</label>
+    </form>
+  `;
+
+  const screen = parseQuizScreen(html);
+  assert.equal(screen.stage, "question");
+  if (screen.stage === "question") {
+    assert.equal(screen.inputType, "multiple_choice");
+    assert.equal(screen.choices.length, 3);
+    assert.equal(screen.choices[0]?.fieldName, "answer[]");
   }
 });
 

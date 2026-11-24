@@ -3,25 +3,21 @@ import { readFile } from "node:fs/promises";
 import type {
   CommandContext,
   CommandResult,
-  InitQuizConfig,
+  LanguagePreference,
+  LlmProviderConfig,
   ParsedAssignment,
-  ParsedQuestionScreen,
-  ParsedQuizScreen,
   QuizDraftAttemptResult,
-  QuizShowInfo,
-  SummaryItem,
 } from "../types/index.js";
+import {
+  getDefaultFallbackModels,
+  getDefaultModelForProvider,
+  normalizeProviderName,
+  parseFallbackModelsList,
+} from "../core/config.js";
 import { LmsHttpClient } from "../core/http-client.js";
 import {
   buildAssignmentsDueUrl,
-  buildQuizDisplayUrl,
   buildQuizPauseUrl,
-  buildQuizShowUrl,
-  extractQuizDisplayId,
-  extractQuizIdFromShowUrl,
-  extractQueryParam,
-  isQuizDisplayUrl,
-  isQuizShowUrl,
 } from "../core/lms-urls.js";
 import { parseAssignmentsHtml } from "../parsers/assignments.parser.js";
 import {
@@ -33,107 +29,19 @@ import {
   renderQuizDraftMarkdown,
   renderQuizInspectMarkdown,
   renderQuizScanMarkdown,
-  type QuizInspectReportInput,
+  renderQuizSolveMarkdown,
+  type QuizScannedItem,
 } from "../exporters/quiz.exporter.js";
 import { saveMarkdownReport } from "../exporters/markdown-writer.js";
+import { createLlmProvider } from "../llm/registry.js";
+import { loadPartAttachments } from "../services/quiz-form.mapper.js";
+import {
+  fetchAllQuizPartsReadOnly,
+  inspectQuizTargetReadOnly,
+} from "../services/quiz-inspector.service.js";
+import { runQuizSolverWorkflow } from "../services/quiz-solver.service.js";
 
-export interface QuizScannedItem {
-  assignmentTitle: string;
-  assignmentHref: string;
-  showInfo?: QuizShowInfo;
-  initConfig?: QuizInspectReportInput["initConfig"];
-  questions: Array<{
-    part: number;
-    totalParts: number;
-    screen: ParsedQuestionScreen | ParsedQuizScreen;
-  }>;
-  summaryItems?: SummaryItem[];
-  skippedReason?: string;
-  traces?: import("../types/index.js").SanitizedHttpTrace[];
-}
-
-function sanitizeSlug(text: string): string {
-  return text
-    .replace(/[^a-zA-Z0-9_-]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 50);
-}
-
-async function fetchAllQuizPartsReadOnly(
-  client: LmsHttpClient,
-  quizId: string | number,
-  resultsId: string | number,
-  referer?: string,
-): Promise<{
-  initConfig: InitQuizConfig | null;
-  questions: Array<{ part: number; totalParts: number; screen: ParsedQuizScreen }>;
-  summaryItems: SummaryItem[];
-  finishAction?: string;
-}> {
-  const firstUrl = buildQuizDisplayUrl(quizId, 1, resultsId, client.baseUrl);
-  const firstRes = await client.request({
-    method: "GET",
-    pathOrUrl: firstUrl,
-    ...(referer ? { referer } : {}),
-  });
-
-  if (firstRes.status !== 200 || firstRes.kind !== "HTML") {
-    throw new Error(
-      `[Error] Failed to fetch initial quiz part. Status: ${firstRes.status} ${firstRes.statusText}`,
-    );
-  }
-
-  const initConfig = parseInitQuizConfig(firstRes.body);
-  const totalParts = initConfig?.parts ?? 1;
-  const initialPart = initConfig?.part ?? 1;
-
-  const screens: Array<{ part: number; totalParts: number; screen: ParsedQuizScreen }> = [
-    {
-      part: initialPart,
-      totalParts,
-      screen: parseQuizScreen(firstRes.body),
-    },
-  ];
-
-  for (let p = 1; p <= totalParts; p++) {
-    if (p === initialPart) continue;
-    const partUrl = buildQuizDisplayUrl(quizId, p, resultsId, client.baseUrl);
-    const res = await client.request({
-      method: "GET",
-      pathOrUrl: partUrl,
-      ...(referer ? { referer } : {}),
-    });
-    if (res.status === 200 && res.kind === "HTML") {
-      screens.push({
-        part: p,
-        totalParts,
-        screen: parseQuizScreen(res.body),
-      });
-    }
-  }
-
-  const summaryItems: SummaryItem[] = [];
-  let finishAction: string | undefined;
-  const questionParts: Array<{ part: number; totalParts: number; screen: ParsedQuizScreen }> = [];
-
-  for (const item of screens) {
-    if (item.screen.stage === "summary") {
-      summaryItems.push(...item.screen.summaryItems);
-      if (!finishAction && item.screen.finishAction) {
-        finishAction = item.screen.finishAction;
-      }
-    } else {
-      questionParts.push(item);
-    }
-  }
-
-  return {
-    initConfig,
-    questions: questionParts,
-    summaryItems,
-    ...(finishAction ? { finishAction } : {}),
-  };
-}
+export type { QuizScannedItem };
 
 export interface QuizInspectCommandOptions {
   targetOrUrl: string;
@@ -149,162 +57,30 @@ export async function runQuizInspectCommand(
   const { targetOrUrl, resultsId: optResultsId, startNew = false, noReport } = options;
   const client = new LmsHttpClient(ctx.baseUrl, ctx.initialCookie, ctx.quiet);
 
-  let showUrl: string | undefined;
-  let displayUrl: string | undefined;
-  let quizIdStr: string | undefined;
-  let resultsIdStr: string | undefined = optResultsId;
-  let showInfo: QuizShowInfo | undefined;
-  let initConfig: InitQuizConfig | null = null;
-  let questions: Array<{ part: number; totalParts: number; screen: ParsedQuizScreen }> = [];
-  let summaryItems: SummaryItem[] = [];
-  let note: string | undefined;
-
-  if (isQuizDisplayUrl(targetOrUrl)) {
-    const resolvedDisplayUrl = client.resolveUrl(targetOrUrl);
-    displayUrl = resolvedDisplayUrl;
-    quizIdStr = extractQuizDisplayId(resolvedDisplayUrl) ?? undefined;
-    resultsIdStr = resultsIdStr || extractQueryParam(resolvedDisplayUrl, "results") || undefined;
-
-    if (!quizIdStr || !resultsIdStr) {
-      throw new Error("[Error] Could not extract quiz_id or results_id from display URL.");
-    }
-
-    const readOnlyResult = await fetchAllQuizPartsReadOnly(
-      client,
-      quizIdStr,
-      resultsIdStr,
-      `${ctx.baseUrl}/user_dashboard`,
-    );
-    initConfig = readOnlyResult.initConfig;
-    questions = readOnlyResult.questions;
-    summaryItems = readOnlyResult.summaryItems;
-  } else if (isQuizShowUrl(targetOrUrl)) {
-    quizIdStr = extractQuizIdFromShowUrl(targetOrUrl) || (/^\d+$/.test(targetOrUrl.trim()) ? targetOrUrl.trim() : undefined);
-    if (!quizIdStr) {
-      throw new Error("[Error] Invalid quiz show URL or quiz ID.");
-    }
-
-    showUrl = buildQuizShowUrl(ctx.baseUrl, quizIdStr);
-    const showRes = await client.request({
-      method: "GET",
-      pathOrUrl: showUrl,
-      referer: `${ctx.baseUrl}/user_dashboard`,
-    });
-
-    if (showRes.status !== 200 || showRes.kind !== "HTML") {
-      throw new Error(
-        `[Error] Failed to fetch quiz show page. Status: ${showRes.status} ${showRes.statusText}`,
-      );
-    }
-
-    showInfo = parseQuizShowPage(showRes.body);
-
-    const actionHref = showInfo.actionButtonHref
-      ? client.resolveUrl(showInfo.actionButtonHref)
-      : undefined;
-
-    const isResume = showInfo.isResumeAttempt || (actionHref ? actionHref.includes("results=") : false);
-
-    if (isResume && actionHref) {
-      displayUrl = actionHref;
-      const resQuizId = extractQueryParam(actionHref, "quiz_id") || quizIdStr;
-      const resResultsId = extractQueryParam(actionHref, "results");
-
-      if (resResultsId) {
-        resultsIdStr = resResultsId;
-        const readOnlyResult = await fetchAllQuizPartsReadOnly(
-          client,
-          resQuizId,
-          resResultsId,
-          showUrl,
-        );
-        initConfig = readOnlyResult.initConfig;
-        questions = readOnlyResult.questions;
-        summaryItems = readOnlyResult.summaryItems;
-      }
-    } else if (startNew && actionHref) {
-      // User opted in to --start-new (still GET only navigation)
-      const firstRes = await client.request({
-        method: "GET",
-        pathOrUrl: actionHref,
-        referer: showUrl,
-      });
-
-      let finalRes = firstRes;
-      if (firstRes.kind === "Redirect" && firstRes.location) {
-        finalRes = await client.request({
-          method: "GET",
-          pathOrUrl: firstRes.location,
-          referer: showUrl,
-        });
-      }
-
-      if (finalRes.status === 200 && finalRes.kind === "HTML") {
-        displayUrl = client.resolveUrl(actionHref);
-        initConfig = parseInitQuizConfig(finalRes.body);
-        const qId = initConfig?.quizId?.toString() || quizIdStr;
-        const rId = initConfig?.resultsId?.toString();
-        if (qId && rId) {
-          resultsIdStr = rId;
-          const readOnlyResult = await fetchAllQuizPartsReadOnly(
-            client,
-            qId,
-            rId,
-            showUrl,
-          );
-          initConfig = readOnlyResult.initConfig;
-          questions = readOnlyResult.questions;
-          summaryItems = readOnlyResult.summaryItems;
-        } else {
-          const screen = parseQuizScreen(finalRes.body);
-          questions = [{ part: 1, totalParts: initConfig?.parts ?? 1, screen }];
-        }
-      }
-    } else {
-      note =
-        "لم يتم فتح محاولة جديدة لأن الاختبار لم يبدأ بعد ولم يتم تمرير --start-new. هذه مع safe افتراضي (GET فقط).";
-    }
-  } else {
-    // Generic GET URL inspection
-    const fullUrl = client.resolveUrl(targetOrUrl);
-    const res = await client.request({
-      method: "GET",
-      pathOrUrl: targetOrUrl,
-      referer: `${ctx.baseUrl}/user_dashboard`,
-    });
-    displayUrl = fullUrl;
-    if (res.status === 200 && res.kind === "HTML") {
-      if (res.body.includes("/student_take_quiz_assignment/display/")) {
-        const dId = extractQueryParam(fullUrl, "quiz_id") || extractQuizDisplayId(fullUrl);
-        const rId = extractQueryParam(fullUrl, "results");
-        if (dId && rId) {
-          const readOnlyResult = await fetchAllQuizPartsReadOnly(client, dId, rId, fullUrl);
-          initConfig = readOnlyResult.initConfig;
-          questions = readOnlyResult.questions;
-          summaryItems = readOnlyResult.summaryItems;
-        }
-      } else if (res.body.includes("/student_quiz_assignment/show/")) {
-        showInfo = parseQuizShowPage(res.body);
-        quizIdStr = extractQuizIdFromShowUrl(fullUrl) ?? undefined;
-      }
-    }
-  }
+  const inspected = await inspectQuizTargetReadOnly(client, {
+    targetOrUrl,
+    baseUrl: ctx.baseUrl,
+    ...(optResultsId ? { resultsId: optResultsId } : {}),
+    startNew,
+  });
 
   if (!ctx.quiet) {
-    console.log(`\n[Quiz Inspect] Parsed ${questions.length} question parts.`);
-    if (showInfo) {
-      console.log(`[Show Page] Title: ${showInfo.title} | Action: ${showInfo.actionButtonText}`);
-    }
-    if (initConfig) {
+    console.log(`\n[Quiz Inspect] Parsed ${inspected.questions.length} question parts.`);
+    if (inspected.showInfo) {
       console.log(
-        `[init_quiz] quiz_id=${initConfig.quizId}, results_id=${initConfig.resultsId}, parts=${initConfig.parts}, timed=${initConfig.timedQuiz}`,
+        `[Show Page] Title: ${inspected.showInfo.title} | Action: ${inspected.showInfo.actionButtonText}`,
+      );
+    }
+    if (inspected.initConfig) {
+      console.log(
+        `[init_quiz] quiz_id=${inspected.initConfig.quizId}, results_id=${inspected.initConfig.resultsId}, parts=${inspected.initConfig.parts}, timed=${inspected.initConfig.timedQuiz}`,
       );
     }
   }
 
   const commandFolder = "quiz-inspect";
   const writeReport = ctx.writeReport && !noReport;
-  const fileSlug = `quiz-${quizIdStr || "inspect"}`;
+  const fileSlug = `quiz-${inspected.quizIdStr || "inspect"}`;
 
   let reportPath: string | undefined;
   let latestReportPath: string | undefined;
@@ -312,19 +88,19 @@ export async function runQuizInspectCommand(
   if (writeReport) {
     const markdown = renderQuizInspectMarkdown({
       targetUrl: targetOrUrl,
-      ...(showUrl ? { showUrl } : {}),
-      ...(displayUrl ? { displayUrl } : {}),
-      ...(quizIdStr ? { quizId: quizIdStr } : {}),
-      ...(resultsIdStr ? { resultsId: resultsIdStr } : {}),
+      ...(inspected.showUrl ? { showUrl: inspected.showUrl } : {}),
+      ...(inspected.displayUrl ? { displayUrl: inspected.displayUrl } : {}),
+      ...(inspected.quizIdStr ? { quizId: inspected.quizIdStr } : {}),
+      ...(inspected.resultsIdStr ? { resultsId: inspected.resultsIdStr } : {}),
       startNewUsed: startNew,
       timestamp: new Date(),
-      ...(showInfo ? { showInfo } : {}),
-      initConfig,
-      questions,
-      summaryItems,
+      ...(inspected.showInfo ? { showInfo: inspected.showInfo } : {}),
+      initConfig: inspected.initConfig,
+      questions: inspected.questions,
+      summaryItems: inspected.summaryItems,
       traces: client.traces,
       hasSession: client.cookieJar.hasRealCookies(),
-      ...(note ? { note } : {}),
+      ...(inspected.note ? { note: inspected.note } : {}),
     });
 
     const saved = await saveMarkdownReport({
@@ -337,7 +113,7 @@ export async function runQuizInspectCommand(
     latestReportPath = saved.latestPath;
   }
 
-  const summaryMessage = `Inspected ${questions.length} quiz question parts read-only.`;
+  const summaryMessage = `Inspected ${inspected.questions.length} quiz question parts read-only.`;
 
   if (!ctx.quiet) {
     if (reportPath) {
@@ -377,9 +153,7 @@ export async function runQuizScanCommand(
     );
   }
 
-  const dueUrl =
-    customUrl || buildAssignmentsDueUrl(ctx.baseUrl, effectiveClassId);
-
+  const dueUrl = customUrl || buildAssignmentsDueUrl(ctx.baseUrl, effectiveClassId);
   const client = new LmsHttpClient(ctx.baseUrl, ctx.initialCookie, ctx.quiet);
 
   const dueRes = await client.request({
@@ -396,11 +170,12 @@ export async function runQuizScanCommand(
 
   const dueAssignments: ParsedAssignment[] = parseAssignmentsHtml(dueRes.body);
   const quizAssignments = dueAssignments.filter((a) => a.kind === "quiz");
-
   const scannedQuizzes: QuizScannedItem[] = [];
 
   if (!ctx.quiet) {
-    console.log(`\n[Quiz Scan] Found ${quizAssignments.length} quiz assignments out of ${dueAssignments.length} due items.`);
+    console.log(
+      `\n[Quiz Scan] Found ${quizAssignments.length} quiz assignments out of ${dueAssignments.length} due items.`,
+    );
   }
 
   for (const item of quizAssignments) {
@@ -435,10 +210,9 @@ export async function runQuizScanCommand(
         continue;
       }
 
-      const isResume = showInfo.isResumeAttempt;
-
-      if (!isResume && !startNew) {
-        scannedItem.skippedReason = `لم يتم فتح محاولة جديدة لحماية رصيد المحاولات (استخدم --start-new للفتح).`;
+      if (!showInfo.isResumeAttempt && !startNew) {
+        scannedItem.skippedReason =
+          "لم يتم فتح محاولة جديدة لحماية رصيد المحاولات (استخدم --start-new للفتح).";
         scannedQuizzes.push(scannedItem);
         continue;
       }
@@ -546,6 +320,33 @@ export async function runQuizScanCommand(
   };
 }
 
+async function parseDraftAnswersMap(answersInput?: string): Promise<Record<number, string>> {
+  const answersByPart: Record<number, string> = {};
+  if (!answersInput) return answersByPart;
+
+  let rawJson = answersInput.trim();
+  if (rawJson.startsWith("@")) {
+    const filePath = path.resolve(rawJson.slice(1));
+    rawJson = await readFile(filePath, "utf8");
+  } else if (!rawJson.startsWith("{") && !rawJson.startsWith("[")) {
+    const filePath = path.resolve(rawJson);
+    try {
+      rawJson = await readFile(filePath, "utf8");
+    } catch {
+      // treat as inline if not file
+    }
+  }
+
+  const parsed = JSON.parse(rawJson) as Record<string, string>;
+  for (const [k, v] of Object.entries(parsed)) {
+    const partNum = Number(k);
+    if (!Number.isNaN(partNum)) {
+      answersByPart[partNum] = String(v);
+    }
+  }
+  return answersByPart;
+}
+
 export interface QuizDraftCommandOptions {
   displayUrl: string;
   answers?: string;
@@ -571,30 +372,7 @@ export async function runQuizDraftCommand(
   const dryRun = !apply;
   const client = new LmsHttpClient(ctx.baseUrl, ctx.initialCookie, ctx.quiet);
   const displayUrl = client.resolveUrl(rawDisplayUrl);
-
-  let answersByPart: Record<number, string> = {};
-  if (answersInput) {
-    let rawJson = answersInput.trim();
-    if (rawJson.startsWith("@")) {
-      const filePath = path.resolve(rawJson.slice(1));
-      rawJson = await readFile(filePath, "utf8");
-    } else if (!rawJson.startsWith("{") && !rawJson.startsWith("[")) {
-      const filePath = path.resolve(rawJson);
-      try {
-        rawJson = await readFile(filePath, "utf8");
-      } catch {
-        // treat as inline if not file
-      }
-    }
-
-    const parsed = JSON.parse(rawJson) as Record<string, string>;
-    for (const [k, v] of Object.entries(parsed)) {
-      const partNum = Number(k);
-      if (!Number.isNaN(partNum)) {
-        answersByPart[partNum] = String(v);
-      }
-    }
-  }
+  const answersByPart = await parseDraftAnswersMap(answersInput);
 
   const initialRes = await client.request({
     method: "GET",
@@ -658,9 +436,7 @@ export async function runQuizDraftCommand(
     latestToken = questionScreen.hiddenFields["authenticity_token"] || null;
 
     const existingChoice = questionScreen.choices.find((c) => c.checked)?.value ?? "";
-    const existingAnswer =
-      existingChoice || questionScreen.currentTextAnswer || "";
-
+    const existingAnswer = existingChoice || questionScreen.currentTextAnswer || "";
     const answerToSend = answersByPart[currentPart] ?? existingAnswer;
 
     const payload: Record<string, string> = {
@@ -718,7 +494,6 @@ export async function runQuizDraftCommand(
     currentPart += 1;
   }
 
-  // Safe pause if --apply was passed and --no-pause was not set
   if (!dryRun && !noPause) {
     const pausePath = buildQuizPauseUrl(quizId, resultsId, client.baseUrl);
     await client.request({
@@ -770,6 +545,144 @@ export async function runQuizDraftCommand(
   const summaryMessage = dryRun
     ? "Quiz draft dry-run preview completed (0 POST requests sent)."
     : `Quiz draft saved for ${result.steps.length} parts and paused safely.`;
+
+  if (!ctx.quiet) {
+    if (reportPath) {
+      console.log(`\n[Report Saved] ${reportPath}`);
+      if (latestReportPath) {
+        console.log(`[Latest Report] ${latestReportPath}`);
+      }
+    }
+    console.log(`[Summary] ${summaryMessage}`);
+  }
+
+  return {
+    commandFolder,
+    ...(reportPath ? { reportPath } : {}),
+    ...(latestReportPath ? { latestReportPath } : {}),
+    summaryMessage,
+  };
+}
+
+export interface QuizSolveCommandOptions {
+  targetOrUrl: string;
+  provider?: string;
+  model?: string;
+  fallbackModels?: string;
+  lang?: LanguagePreference;
+  subject?: string;
+  attachments?: string[];
+  startNew?: boolean;
+  allowTimed?: boolean;
+  apply?: boolean;
+  submit?: boolean;
+  noPause?: boolean;
+  noReport?: boolean;
+}
+
+export async function runQuizSolveCommand(
+  ctx: CommandContext,
+  options: QuizSolveCommandOptions,
+): Promise<CommandResult> {
+  const {
+    targetOrUrl,
+    provider: optProvider,
+    model: optModel,
+    fallbackModels: optFallbackModels,
+    lang = "auto",
+    subject,
+    attachments = [],
+    startNew = false,
+    allowTimed = false,
+    apply = false,
+    submit = false,
+    noPause = false,
+    noReport = false,
+  } = options;
+
+  const baseLlm: LlmProviderConfig = ctx.llm ?? {
+    provider: "gemini",
+    model: getDefaultModelForProvider("gemini"),
+    apiKey: "VALUES",
+  };
+  const resolvedProvider = optProvider
+    ? normalizeProviderName(optProvider)
+    : baseLlm.provider;
+  const resolvedModel =
+    optModel ||
+    (resolvedProvider !== baseLlm.provider
+      ? getDefaultModelForProvider(resolvedProvider)
+      : baseLlm.model);
+
+  const resolvedFallbacks =
+    parseFallbackModelsList(optFallbackModels) ??
+    (resolvedProvider !== baseLlm.provider || resolvedModel !== baseLlm.model
+      ? getDefaultFallbackModels(resolvedProvider, resolvedModel)
+      : baseLlm.fallbackModels);
+
+  const llmConfig: LlmProviderConfig = {
+    provider: resolvedProvider,
+    model: resolvedModel,
+    apiKey: baseLlm.apiKey,
+    quiet: ctx.quiet,
+    ...(baseLlm.baseUrl ? { baseUrl: baseLlm.baseUrl } : {}),
+    ...(resolvedFallbacks && resolvedFallbacks.length > 0
+      ? { fallbackModels: resolvedFallbacks }
+      : {}),
+  };
+
+  const llmProvider = createLlmProvider(llmConfig);
+  const attachmentsByPart =
+    attachments.length > 0 ? await loadPartAttachments(attachments) : undefined;
+
+  const client = new LmsHttpClient(ctx.baseUrl, ctx.initialCookie, ctx.quiet);
+
+  const { displayUrl, showUrl, result } = await runQuizSolverWorkflow(client, {
+    targetOrUrl,
+    baseUrl: ctx.baseUrl,
+    llmProvider,
+    languagePreference: lang,
+    ...(subject ? { subjectHint: subject } : {}),
+    ...(attachmentsByPart ? { attachmentsByPart } : {}),
+    startNew,
+    allowTimed,
+    apply,
+    submit,
+    noPause,
+    quiet: ctx.quiet,
+  });
+
+  const commandFolder = "quiz-solve";
+  const writeReport = ctx.writeReport && !noReport;
+  const fileSlug = `quiz-${result.quizId}-solve`;
+
+  let reportPath: string | undefined;
+  let latestReportPath: string | undefined;
+
+  if (writeReport) {
+    const markdown = renderQuizSolveMarkdown({
+      targetUrl: targetOrUrl,
+      displayUrl,
+      ...(showUrl ? { showUrl } : {}),
+      timestamp: new Date(),
+      result,
+      traces: client.traces,
+      hasSession: client.cookieJar.hasRealCookies(),
+    });
+
+    const saved = await saveMarkdownReport({
+      reportsDir: ctx.reportsDir,
+      commandFolder,
+      fileSlug,
+      content: markdown,
+    });
+    reportPath = saved.timestampedPath;
+    latestReportPath = saved.latestPath;
+  }
+
+  const summaryMessage = result.dryRun
+    ? `LLM dry-run solved ${result.steps.length}/${result.totalParts} parts using ${result.provider}:${result.model} (0 POST requests sent).`
+    : `LLM solved and saved ${result.steps.length}/${result.totalParts} parts using ${result.provider}:${result.model} (summaryVerified=${result.summaryVerified}, paused=${result.pausedSafely}).`;
 
   if (!ctx.quiet) {
     if (reportPath) {

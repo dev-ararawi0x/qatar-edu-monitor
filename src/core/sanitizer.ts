@@ -1,10 +1,10 @@
-import type { ParsedQuizScreen } from "../types/index.js";
+import type { HttpFormFieldValue, ParsedQuizScreen } from "../types/index.js";
 
 export const MASK_VALUE = "VALUES";
 
-export function maskIfSensitiveKey(key: string, val: string): string {
+export function isSensitiveKeyName(key: string): boolean {
   const k = key.toLowerCase();
-  if (
+  return (
     k.includes("cookie") ||
     k.includes("token") ||
     k.includes("csrf") ||
@@ -13,20 +13,35 @@ export function maskIfSensitiveKey(key: string, val: string): string {
     k.includes("secret") ||
     k.includes("password") ||
     k.includes("jwt") ||
-    k.includes("credential")
-  ) {
+    k.includes("credential") ||
+    k.includes("api_key") ||
+    k.includes("apikey") ||
+    k.includes("x-api-key") ||
+    k.includes("private_key") ||
+    k.includes("bearer")
+  );
+}
+
+export function maskIfSensitiveKey(key: string, val: string): string {
+  if (isSensitiveKeyName(key)) {
     return MASK_VALUE;
   }
   return val;
 }
 
 export function sanitizeFields(
-  fields?: Record<string, string>,
+  fields?: Record<string, HttpFormFieldValue>,
 ): Record<string, string> | undefined {
   if (!fields) return undefined;
   const safe: Record<string, string> = {};
   for (const [key, val] of Object.entries(fields)) {
-    safe[key] = maskIfSensitiveKey(key, val);
+    if (Array.isArray(val)) {
+      safe[key] = isSensitiveKeyName(key)
+        ? MASK_VALUE
+        : val.map((item) => sanitizeText(item)).join(", ");
+    } else {
+      safe[key] = maskIfSensitiveKey(key, val);
+    }
   }
   return safe;
 }
@@ -52,9 +67,9 @@ export function sanitizeText(text: string): string {
     /(<input[^>]*name=["'](?:authenticity_token|csrf_token|csrf-token)["'][^>]*value=["'])([^"']*)(["'][^>]*>)/gi,
     `$1${MASK_VALUE}$3`,
   );
-  // Mask Authorization header (Bearer token, Basic auth, etc.)
+  // Mask Authorization and API-key headers
   result = result.replace(
-    /((?:Authorization|Proxy-Authorization|X-Auth-Token|X-CSRF-Token|X-XSRF-Token)\s*[:=]\s*)([^\n]+)/gi,
+    /((?:Authorization|Proxy-Authorization|X-Auth-Token|X-CSRF-Token|X-XSRF-Token|X-API-Key|x-goog-api-key|anthropic-api-key)\s*[:=]\s*)([^\n]+)/gi,
     `$1${MASK_VALUE}`,
   );
   // Mask Cookie header values
@@ -62,9 +77,13 @@ export function sanitizeText(text: string): string {
     /((?:Cookie|Set-Cookie)\s*[:=]\s*)([^\n]+)/gi,
     `$1${MASK_VALUE}`,
   );
-  // Mask sensitive key=value pairs in strings
+  // Mask sensitive key=value pairs in strings and query strings (including ?key= for Gemini REST URLs)
   result = result.replace(
-    /((?:authenticity_token|csrf_token|csrf-token|access_token|refresh_token|session_token|api_key|secret_key|password)=)([^\s;&"']+)/gi,
+    /((?:authenticity_token|csrf_token|csrf-token|access_token|refresh_token|session_token|[a-z0-9_]*api_key|apikey|secret_key|password)=)([^\s;&"']+)/gi,
+    `$1${MASK_VALUE}`,
+  );
+  result = result.replace(
+    /([?&]key=)([^\s&#"']+)/gi,
     `$1${MASK_VALUE}`,
   );
   return result;
@@ -92,12 +111,9 @@ export function sanitizeJsonValue(val: unknown): unknown {
   if (typeof val === "object") {
     const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(val as Record<string, unknown>)) {
-      if (
-        k.toLowerCase().includes("token") ||
-        k.toLowerCase().includes("cookie") ||
-        k.toLowerCase().includes("password") ||
-        k.toLowerCase().includes("secret")
-      ) {
+      if (v !== null && typeof v === "object" && !Array.isArray(v)) {
+        out[k] = sanitizeJsonValue(v);
+      } else if (isSensitiveKeyName(k)) {
         out[k] = MASK_VALUE;
       } else {
         out[k] = sanitizeJsonValue(v);

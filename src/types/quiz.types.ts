@@ -1,3 +1,10 @@
+import type {
+  AnswerLanguage,
+  LlmProviderName,
+  LlmSolvedAnswer,
+} from "./llm.types.js";
+import type { SanitizedFileAttachmentMeta } from "./http.types.js";
+
 export interface QuizShowInfo {
   title: string;
   csrfToken: string | null;
@@ -21,6 +28,13 @@ export interface QuestionChoice {
   value: string;
   label: string;
   checked: boolean;
+  fieldName?: string;
+}
+
+export interface SelectOption {
+  value: string;
+  label: string;
+  selected: boolean;
 }
 
 export type QuizInputType =
@@ -38,6 +52,8 @@ export interface QuestionFieldDetail {
   value?: string;
   checked?: boolean;
   options?: string[];
+  selectOptions?: SelectOption[];
+  contextLabel?: string;
 }
 
 export interface ParsedQuestionScreen {
@@ -96,6 +112,41 @@ export interface QuizDraftAttemptResult {
     action: string;
     status?: number;
   }>;
+  questions: QuizPartQuestion[];
+  summaryItems?: SummaryItem[];
+  finishAction?: string;
+}
+
+export type QuizExecutionMode = "dry-run" | "draft" | "submit-ready";
+
+export interface QuizSolveStepResult {
+  part: number;
+  questionHeader: string;
+  inputType: QuizInputType;
+  language: AnswerLanguage;
+  solvedAnswer: LlmSolvedAnswer;
+  formattedSummary: string;
+  action: string;
+  formFieldsSent: Record<string, string>;
+  attachedFiles?: SanitizedFileAttachmentMeta[];
+  status?: number;
+}
+
+export interface QuizSolveAttemptResult {
+  mode: QuizExecutionMode;
+  dryRun: boolean;
+  provider: LlmProviderName;
+  model: string;
+  quizId: number;
+  resultsId: number;
+  quizTitle?: string;
+  totalParts: number;
+  pausedSafely: boolean;
+  reachedSummary: boolean;
+  summaryVerified: boolean;
+  finishBlockedByGuardrail: boolean;
+  warnings: string[];
+  steps: QuizSolveStepResult[];
   questions: QuizPartQuestion[];
   summaryItems?: SummaryItem[];
   finishAction?: string;
