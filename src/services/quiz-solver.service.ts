@@ -8,7 +8,7 @@ import type {
   SummaryItem,
 } from "../types/index.js";
 import type { LmsHttpClient } from "../core/http-client.js";
-import { buildQuizPauseUrl } from "../core/lms-urls.js";
+import { buildQuizDisplayUrl, buildQuizPauseUrl } from "../core/lms-urls.js";
 import { parseQuizScreen } from "../parsers/quiz.parser.js";
 import { detectAnswerLanguage } from "../llm/language-detector.js";
 import {
@@ -73,12 +73,16 @@ export function verifySummaryScreenCompleteness(
     );
   }
 
-  const unanswered = summaryItems.filter(
-    (item) =>
-      !item.recordedAnswer ||
-      item.recordedAnswer === "(غير محدد)" ||
-      /^الإجابة\s*:?\s*$/.test(item.recordedAnswer.trim()),
-  );
+  const unanswered = summaryItems.filter((item) => {
+    const answer = (item.recordedAnswer ?? "").trim();
+    return (
+      !answer ||
+      answer === "(غير محدد)" ||
+      answer.includes("لا يوجد") ||
+      /^\[?\s*none\s*\]?$/i.test(answer) ||
+      /^الإجابة\s*:?\s*$/.test(answer)
+    );
+  });
 
   if (unanswered.length > 0) {
     warnings.push(
@@ -248,6 +252,30 @@ export async function runQuizSolverWorkflow(
   let currentScreen = parseQuizScreen(initialBody);
   let currentPart = initConfig.part ?? 1;
   let latestToken: string | null = null;
+
+  // If the attempt is parked on the summary screen but answers are missing,
+  // rewind to part 1 so missing answers actually get solved and saved.
+  if (currentScreen.stage === "summary") {
+    const preCheck = verifySummaryScreenCompleteness(
+      currentScreen.summaryItems,
+      totalParts,
+    );
+    if (!preCheck.verified) {
+      const restartUrl = buildQuizDisplayUrl(quizId, 1, resultsId, client.baseUrl);
+      const restartRes = await client.request({
+        method: "GET",
+        pathOrUrl: restartUrl,
+        referer: displayUrl,
+      });
+      currentScreen = parseQuizScreen(restartRes.body);
+      currentPart = 1;
+      if (!quiet) {
+        console.log(
+          `[Restart] Attempt was on summary screen with unanswered parts — rewound to part 1.`,
+        );
+      }
+    }
+  }
 
   try {
     for (let guard = 0; guard <= totalParts + 1; guard++) {

@@ -17,9 +17,9 @@ import {
 } from "../http-retry.js";
 
 const DEFAULT_GEMINI_FALLBACKS = [
-  "gemini-2.5-flash",
-  "gemini-2.5-flash-lite",
-  "gemini-2.0-flash",
+  "gemini-3.6-flash",
+  "gemini-3.5-flash-lite",
+  "gemini-3.1-flash-lite",
 ];
 
 export class GeminiLlmAdapter implements LlmProvider {
@@ -47,7 +47,9 @@ export class GeminiLlmAdapter implements LlmProvider {
       new Set(rawFallbacks.filter((m) => m && m !== config.model)),
     );
     this.apiKey = config.apiKey;
-    this.baseUrl = (config.baseUrl || "https://generativelanguage.googleapis.com").replace(/\/$/, "");
+    this.baseUrl = (
+      config.baseUrl || "https://generativelanguage.googleapis.com"
+    ).replace(/\/$/, "");
     this.maxHttpRetries = config.maxHttpRetries ?? 2;
     this.retryBaseDelayMs = config.retryBaseDelayMs ?? 1200;
     this.quiet = config.quiet ?? false;
@@ -62,7 +64,11 @@ export class GeminiLlmAdapter implements LlmProvider {
   async solveQuestion(input: LlmQuestionInput): Promise<LlmSolvedAnswer> {
     let feedback: string | undefined = input.validationFeedback;
 
-    for (let validationAttempt = 0; validationAttempt < 2; validationAttempt++) {
+    for (
+      let validationAttempt = 0;
+      validationAttempt < 2;
+      validationAttempt++
+    ) {
       const { systemInstruction, userPrompt } = buildQuestionPrompts({
         ...input,
         ...(feedback ? { validationFeedback: feedback } : {}),
@@ -169,7 +175,11 @@ export class GeminiLlmAdapter implements LlmProvider {
 
       try {
         const jsonObj = parseRawLlmJson(modelText);
-        return validateAndNormalizeLlmAnswer(jsonObj, input.screen, input.targetLanguage);
+        return validateAndNormalizeLlmAnswer(
+          jsonObj,
+          input.screen,
+          input.targetLanguage,
+        );
       } catch (err) {
         if (err instanceof AnswerValidationError && validationAttempt === 0) {
           feedback = err.message;

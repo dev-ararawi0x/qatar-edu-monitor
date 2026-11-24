@@ -14,7 +14,8 @@ The codebase is organized into clean, unidirectional layers so that HTTP transpo
 ┌─────────────────────────────────────────────────────────────┐
 │ CLI Entrypoint (src/cli.ts)                                 │
 │ - Parses subcommands & flags via node:util parseArgs        │
-│ - Builds CommandContext (baseUrl, classId, cookie, reports) │
+│ - Builds CommandContext (baseUrl, classId, cookie, LLM,     │
+│   reports) from env + flags                                 │
 └──────────────────────────────┬──────────────────────────────┘
                                │
                                ▼
@@ -22,29 +23,41 @@ The codebase is organized into clean, unidirectional layers so that HTTP transpo
 │ Command Handlers (src/commands/)                            │
 │ - assignments.command.ts  (list, due)                       │
 │ - lessons.command.ts      (list)                            │
-│ - quiz.command.ts         (inspect, scan, draft)            │
+│ - quiz.command.ts         (inspect, scan, draft, solve)     │
 │ - monitor.command.ts      (monitor)                         │
 └──────────────┬───────────────────────────────┬──────────────┘
                │                               │
                ▼                               ▼
 ┌──────────────────────────────┐   ┌──────────────────────────────┐
-│ Parsers (src/parsers/)       │   │ Exporters (src/exporters/)   │
-│ - Cheerio HTML -> Types      │   │ - Arabic Markdown reports    │
-│ - Pure, synchronous, testable│   │ - reports/<cmd>/latest.md    │
-└──────────────┬───────────────┘   └──────────────▲───────────────┘
+│ Services (src/services/)     │   │ Exporters (src/exporters/)   │
+│ - quiz-inspector.service     │   │ - Arabic Markdown reports    │
+│ - quiz-form.mapper           │   │ - reports/<cmd>/latest.md    │
+│ - quiz-solver.service        │   └──────────────▲───────────────┘
+└──────────────┬───────────────┘                  │
                │                                  │
                ▼                                  │
+┌──────────────────────────────┐   ┌───────────────┴──────────────┐
+│ LLM Layer (src/llm/)         │   │ Parsers (src/parsers/)       │
+│ - adapters/ (gemini, openai, │   │ - Cheerio HTML -> Types      │
+│   anthropic, mock)           │   │ - Pure, synchronous          │
+│ - prompt-builder, validator, │   └──────────────┬───────────────┘
+│   language-detector, retry   │                  │
+└──────────────┬───────────────┘                  │
+               │                                  │
+               └──────────────┬───────────────────┘
+                              ▼
 ┌─────────────────────────────────────────────────────────────┐
 │ Core Infrastructure (src/core/)                             │
-│ - http-client.ts  (LmsHttpClient, /finish/ block, traces)   │
+│ - http-client.ts  (LmsHttpClient, /finish/ block, traces,   │
+│   fetchBinary for question images)                          │
 │ - cookie-jar.ts   (SessionCookieJar)                        │
 │ - sanitizer.ts    ("VALUES" redaction)                      │
 │ - lms-urls.ts     (Route builders & detectors)               │
-│ - config.ts       (Env config loader)                       │
+│ - config.ts       (Env config loader, LLM provider config)  │
 └──────────────────────────────┬──────────────────────────────┘
                                │
                                ▼
-                     Qatar Education LMS (HTTP/HTTPS)
+              Qatar Education LMS + LLM Provider APIs
 ```
 
 ### Layer Responsibilities
@@ -62,7 +75,7 @@ The codebase is organized into clean, unidirectional layers so that HTTP transpo
 ## 2. Session, Cookie & HTTP Data Flow
 
 1. **Initialization**:
-   - `loadAppConfig()` reads `LMS_BASE_URL`, `LMS_CLASS_ID`, and `LMS_COOKIE` from environment variables (via `dotenv/config`). If `LMS_COOKIE` is unset or `"VALUES"`, the session starts empty.
+   - `loadAppConfig()` reads `LMS_BASE_URL` (required — throws if missing or still a `<placeholder>`), `LMS_CLASS_ID`, `LMS_COOKIE`, `REPORTS_DIR`, and the `LLM_*` variables (`LLM_PROVIDER`, `LLM_MODEL`, `LLM_API_KEY`, `LLM_BASE_URL`, `LLM_FALLBACK_MODELS`) from environment variables via `dotenv/config`. If `LMS_COOKIE` is unset or `"VALUES"`, the session starts empty.
    - A single `SessionCookieJar` instance is owned by `LmsHttpClient` for the entire duration of a CLI command.
 2. **Request Execution (`LmsHttpClient.request`)**:
    - Resolves relative or absolute paths against `baseUrl`.
@@ -119,20 +132,28 @@ Parsers in `src/parsers/` operate on HTML strings without making network request
 
 ## 4. Quiz Safety Guardrails
 
-The system enforces four independent layers of protection to prevent accidental quiz attempt consumption or submission:
+The system enforces independent layers of protection to prevent accidental quiz attempt consumption or submission:
 
-1. **Read-Only Default (`quiz inspect` & `quiz scan`)**:
-   - Both commands issue **only `GET` requests**.
+1. **Read-Only Default (`quiz inspect`, `quiz scan`, `quiz solve` dry-run, `monitor`)**:
+   - These commands issue **only `GET` requests** by default. `quiz solve` without `--apply`/`--submit` fetches every part read-only, solves via the LLM, and only previews the mapped form payloads — zero `POST`s.
    - Unstarted quizzes (where `isResumeAttempt` is false and `--start-new` is not passed) are skipped immediately without sending any request to start an attempt.
 2. **`--start-new` Explicit Opt-In**:
-   - To inspect questions of a brand-new attempt that has never been opened, the user must explicitly pass `--start-new`.
-3. **Draft Dry-Run Default & Timed Quiz Protection (`quiz draft`)**:
-   - Without `--apply`, `quiz draft` operates strictly in **dry-run mode**: it fetches the first question via `GET`, parses the form, and previews what payload would be sent without issuing any `POST`.
+   - To inspect or solve questions of a brand-new attempt that has never been opened, the user must explicitly pass `--start-new`.
+3. **Draft Dry-Run Default & Timed Quiz Protection (`quiz draft`, `quiz solve`)**:
+   - Without `--apply`, `quiz draft`/`quiz solve` operate strictly in **dry-run mode**.
    - If `init_quiz` indicates `timed_quiz: true`, execution aborts immediately unless `--allow-timed` is explicitly provided.
-   - When `--apply` is passed, draft answers are submitted via `POST` with `destination: "next"`, followed by a `POST` to `/student_take_quiz_assignment/pause/<quizId>?results=<resultsId>` so the attempt remains paused and resumable in the browser.
+   - When `--apply` is passed, answers are submitted via `POST` with `destination: "next"` per part, followed by a `POST` to `/student_take_quiz_assignment/pause/<quizId>?results=<resultsId>` so the attempt remains paused and resumable in the browser.
+   - `quiz solve --submit` additionally walks to the summary screen and verifies completeness before pausing — it still never calls `/finish/`.
 4. **Hard Transport-Level `/finish/` Block (`LmsHttpClient`)**:
    - `LmsHttpClient.request()` checks every outgoing URL with `isQuizFinishUrl()`.
    - If a URL contains `/student_take_quiz_assignment/finish/`, the client throws an error before any network packet is sent. Quiz final submission is structurally impossible.
+
+### `quiz solve` Workflow (`src/services/quiz-solver.service.ts`)
+
+1. `resolveActiveQuizEntry` resolves the target (show URL / display URL / quiz ID) into an active attempt (`quizId`, `resultsId`, `initConfig`).
+2. **Dry-run**: `fetchAllQuizPartsReadOnly` GETs every part; each question screen is parsed, images are fetched inline via `fetchBinary` (max 4), `detectAnswerLanguage` picks `ar`/`en`, the LLM provider returns a structured JSON answer, `validateAndNormalizeLlmAnswer` checks it against the DOM schema (one self-correction retry), and `mapAnswerToFormPayload` renders the LMS form fields — all previewed, nothing POSTed.
+3. **Apply/Submit**: parts are solved and POSTed sequentially (each POST returns the next question page + fresh CSRF token). If the attempt is parked on the summary screen with unanswered parts, the solver **rewinds to `part=1`** and fills them. On completion it reaches the summary screen, `verifySummaryScreenCompleteness` checks every item has a recorded answer (treating `لا يوجد`, `(غير محدد)`, `none`, and empty as unanswered), then `/pause/` is called. Any mid-run error triggers an **emergency pause** before rethrowing.
+4. **LLM resilience**: adapters retry transient `503`/`429`/`5xx` with exponential backoff (`src/llm/http-retry.ts`) and fall back through `LLM_FALLBACK_MODELS` (or provider defaults) on model-unavailable responses; the last successful model is remembered for subsequent questions.
 
 ---
 
@@ -144,7 +165,7 @@ Every command that produces structured data generates an Arabic-language Markdow
   - Reports are saved under `reports/<command-folder>/` (e.g., `reports/quiz-inspect/`, `reports/quiz-scan/`, `reports/assignments-due/`).
   - Each run creates a timestamped file `YYYY-MM-DD_HH-mm-ss.md` (or `<slug>_YYYY-MM-DD_HH-mm-ss.md`) and updates `latest.md` in the same folder.
 - **Fast-Scan Question Cards in Quiz Reports**:
-  - Each question in `quiz inspect`, `quiz scan`, and `quiz draft` reports is formatted as a dedicated section containing:
+  - Each question in `quiz inspect`, `quiz scan`, `quiz draft`, and `quiz solve` reports is formatted as a dedicated section containing:
     1. **Question Prompt**: Full question text and attached image links.
     2. **Score / Points**: Question grade badge.
     3. **Question Type (Arabic)**: Single-choice, multiple-choice, free-text, structured multi-field, or file-upload.
@@ -164,8 +185,15 @@ Every command that produces structured data generates an Arabic-language Markdow
 4. **Create Command Handler**: Add orchestration logic in `src/commands/<name>.command.ts`.
 5. **Wire CLI**: Register the subcommand and flags in `src/cli.ts`.
 
+### Adding a New LLM Provider
+1. Implement the `LlmProvider` interface (`solveQuestion`) in `src/llm/adapters/<name>.adapter.ts` (reuse `buildQuestionPrompts`, `validateAndNormalizeLlmAnswer`, `fetchWithTransientRetry`).
+2. Register it in `src/llm/registry.ts` and `normalizeProviderName` in `src/core/config.ts`.
+3. Add its API-key env mapping and default model in `getDefaultModelForProvider` / `loadAppConfig`.
+4. Add unit tests with a mocked `fetchImpl` in `tests/llm-and-mapper.test.ts`.
+
 ### Adding a New Quiz Question Type
 1. Update `QuizInputType` in `src/types/quiz.types.ts`.
 2. Update detection and classification logic in `src/parsers/quiz.parser.ts` (`parseQuizScreen`).
 3. Add the Arabic label in `getQuestionTypeLabelAr()` in `src/exporters/quiz.exporter.ts`.
-4. Add unit test fixtures in `tests/parsers.test.ts`.
+4. Extend `validateAndNormalizeLlmAnswer` / `mapAnswerToFormPayload` in `src/llm/` and `src/services/` if the LLM answer shape changes.
+5. Add unit test fixtures in `tests/parsers.test.ts`.

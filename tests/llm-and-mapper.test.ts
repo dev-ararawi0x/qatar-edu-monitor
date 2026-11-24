@@ -401,6 +401,7 @@ test("GeminiLlmAdapter retries on HTTP 503 high-demand spikes and falls back to 
     {
       provider: "gemini",
       model: "gemini-2.5-flash",
+      fallbackModels: ["gemini-2.5-flash-lite"],
       apiKey: "AIzaSecretGeminiKey",
       maxHttpRetries: 1,
       retryBaseDelayMs: 5,

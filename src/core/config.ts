@@ -17,7 +17,7 @@ export interface AppConfig {
 export function getDefaultModelForProvider(provider: LlmProviderName): string {
   switch (provider) {
     case "gemini":
-      return "gemini-2.5-flash";
+      return "gemini-3.8-flash";
     case "openai":
       return "gpt-4o-mini";
     case "anthropic":
@@ -33,9 +33,9 @@ export function getDefaultFallbackModels(
 ): string[] {
   if (provider === "gemini") {
     const candidates = [
-      "gemini-2.5-flash",
-      "gemini-2.5-flash-lite",
-      "gemini-2.0-flash",
+      "gemini-3.6-flash",
+      "gemini-3.5-flash-lite",
+      "gemini-3.1-flash-lite",
     ];
     return candidates.filter((m) => m !== primaryModel);
   }
@@ -67,7 +67,18 @@ export function normalizeProviderName(raw?: string): LlmProviderName {
 }
 
 export function loadAppConfig(): AppConfig {
-  const baseUrl = (process.env.LMS_BASE_URL || "https://qeducation.edu.gov.qa").replace(/\/$/, "");
+  const rawBaseUrl = process.env.LMS_BASE_URL;
+  if (!rawBaseUrl) {
+    throw new Error(
+      "[Error] LMS_BASE_URL is not configured. Set it in .env or pass a full --url.",
+    );
+  }
+  const baseUrl = rawBaseUrl.replace(/\/$/, "");
+  if (!/^https?:\/\//i.test(baseUrl) || baseUrl.includes("<") || baseUrl.includes(">")) {
+    throw new Error(
+      "[Error] LMS_BASE_URL appears invalid or still contains a placeholder (<...>). Set a valid base URL in .env.",
+    );
+  }
   const defaultClassId = process.env.LMS_CLASS_ID || "";
   const initialCookie = process.env.LMS_COOKIE || "VALUES";
   const reportsDir = process.env.REPORTS_DIR

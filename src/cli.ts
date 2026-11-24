@@ -111,7 +111,7 @@ quiz draft options:
 quiz solve options:
   --provider <name>  LLM provider: gemini | openai | anthropic | mock (defaults to LLM_PROVIDER)
   --model <name>     Model override (defaults to LLM_MODEL or provider default)
-  --fallback-models  Comma-separated fallback models on 503/429 spikes (e.g. gemini-2.5-flash-lite,gemini-2.0-flash)
+  --fallback-models  Comma-separated fallback models on 503/429 spikes (e.g. gemini-3.6-flash,gemini-3.5-flash-lite)
   --lang <mode>      Answer language: auto | ar | en (default: auto based on subject & question)
   --subject <hint>   Optional subject hint (e.g. "English Language", "الفيزياء")
   --attach <p=path>  Attach local file for part p (repeatable, e.g. --attach 3=./solution.pdf)
