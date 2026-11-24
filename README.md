@@ -1,233 +1,224 @@
 # Qatar Education Monitor (`qatar-edu-monitor`)
 
-A pnpm-workspace monorepo with a safety-first TypeScript / Node.js CLI, shared LMS core package, minimal API skeleton, and minimal web skeleton for inspecting and monitoring the Qatar Education LMS. It provides read-only assignment, lesson, and quiz inspection, safe draft-saving with pause/resume protection, and automated Arabic (`العربية`) Markdown reports.
+A safety-first TypeScript / Node.js **pnpm workspace monorepo** for inspecting and monitoring the Qatar Education LMS (`https://qeducation.edu.gov.qa`).
+
+It ships four workspace packages:
+
+| Package | Path | Purpose |
+| --- | --- | --- |
+| `@qatar-edu/core` | `packages/core` | Shared domain types, `LmsHttpClient` (with transport-level `/finish/` block), `SessionCookieJar`, `"VALUES"` sanitizer, URL builders, Cheerio parsers, LLM adapters, and quiz domain services. Zero CLI dependencies. |
+| `@qatar-edu/cli` | `apps/cli` | The existing CLI: entrypoint, command handlers, env config, and Arabic (`العربية`) Markdown report exporters. |
+| `@qatar-edu/api` | `apps/api` | Minimal Hono + Node.js skeleton with a single `GET /health` route. No business routes yet. |
+| `@qatar-edu/web` | `apps/web` | Minimal Vite + React + TypeScript + TanStack Router skeleton. No UI pages yet. |
+
+The CLI provides read-only assignment, lesson, and quiz inspection; safe draft-saving with pause/resume protection; LLM-assisted quiz solving (dry-run by default); and automated Arabic Markdown reports.
 
 ---
 
 ## Features
 
-- **Unified CLI**: Single entrypoint (`src/cli.ts`) with subcommands for `assignments`, `lessons`, `quiz`, and `monitor`.
-- **Read-Only by Default**: `quiz inspect`, `quiz scan`, `assignments`, `lessons`, and `monitor` use only `GET` requests.
+- **Read-Only by Default**: `assignments`, `lessons`, `quiz inspect`, `quiz scan`, `quiz solve` (dry-run), and `monitor` issue only `GET` requests.
 - **Quiz Safety Guardrails**:
   - New quiz attempts are skipped unless `--start-new` is explicitly passed.
-  - `quiz draft` runs in dry-run mode by default (no `POST` unless `--apply` is passed).
+  - `quiz draft` / `quiz solve` run in dry-run mode unless `--apply` / `--submit` is passed.
   - Draft execution pauses via `/pause/` and **never** submits `/finish/` (blocked at transport level).
-- **Secret Sanitization**: All cookies, CSRF tokens, and sensitive fields are masked as `"VALUES"` in logs and reports.
-- **Arabic Markdown Reports**: Automatically generates structured Arabic reports under `reports/<command>/` (`latest.md` + timestamped files).
+  - Timed quizzes abort unless `--allow-timed` is passed.
+- **Secret Sanitization**: All cookies, CSRF tokens, and sensitive fields are masked as `"VALUES"` in logs, HTTP traces, and reports.
+- **Arabic Markdown Reports**: Timestamped reports plus `latest.md` under `reports/<command>/`.
+- **LLM Quiz Solver**: Pluggable providers (Gemini, OpenAI-compatible, Anthropic, Mock) with prompt building, answer validation, and transient-error retry/fallback.
 - **Zero Hardcoded IDs**: No default class IDs or session cookies are baked into the code; configure via `.env` or CLI flags.
 
 ---
 
 ## Prerequisites
 
-- **Node.js**: v18+ (v22+ recommended)
-- **pnpm**: v10+ (`corepack enable` or `pnpm install -g pnpm`)
-- **TypeScript**: Included as a dev dependency (no global install needed)
+- **Node.js**: v22+ recommended
+- **pnpm**: v10+ (`corepack enable` or `npm install -g pnpm`)
 
 ---
 
 ## Installation
 
-### Linux / macOS
-
 ```bash
-# Clone or navigate to the project directory
+# Clone and enter the repository
 git clone https://github.com/dev-ararawi0x/qatar-edu-monitor.git qatar-edu-monitor
 cd qatar-edu-monitor
 
-# Install dependencies
+# Install all workspace dependencies
 pnpm install
 
 # Copy environment template and configure your session
 cp .env.example .env
 ```
 
-### Windows (PowerShell / CMD)
-
-```powershell
-# Clone or navigate to the project directory
-git clone https://github.com/dev-ararawi0x/qatar-edu-monitor.git qatar-edu-monitor
-cd qatar-edu-monitor
-
-# Install dependencies
-pnpm install
-
-# Copy environment template and configure your session
-copy .env.example .env
-```
+On Windows (PowerShell): `copy .env.example .env` instead of `cp`.
 
 ---
 
 ## Configuration (`.env`)
 
-Create a `.env` file in the project root (copy from `.env.example`). **Never commit `.env` to version control.**
+Create `.env` in the **repository root** (copy from `.env.example`). **Never commit `.env`.**
 
 ```env
 # REQUIRED: Your authenticated session cookie from the LMS browser session.
-# Get this from browser DevTools > Application > Cookies > <your-lms>.edu.gov.qa
-# Copy the full Cookie header value here. All values are masked as "VALUES" in logs/reports.
+# DevTools > Application > Cookies > <your-lms>.edu.gov.qa
+# All values are masked as "VALUES" in logs/reports.
 LMS_COOKIE="VALUES"
 
 # REQUIRED: Base URL of your LMS portal.
 LMS_BASE_URL="https://<your-lms>.edu.gov.qa"
 
 # REQUIRED for class-scoped commands (assignments, lessons, quiz scan):
-# Your class / section ID. Find it in the LMS URL when viewing your class.
-# Example: https://<your-lms>.edu.gov.qa/student_assignments/list/123456
+# Your class / section ID, found in the LMS URL when viewing your class.
 LMS_CLASS_ID="YOUR_CLASS_ID"
 
 # Optional: Custom directory for generated reports (defaults to ./reports)
 # REPORTS_DIR="reports"
+
+# LLM provider configuration (for `quiz solve`): gemini | openai | anthropic | mock
+LLM_PROVIDER="gemini"
+LLM_MODEL="gemini-3.8-flash"
+LLM_API_KEY="VALUES"
+# LLM_FALLBACK_MODELS="gemini-3.6-flash,gemini-3.5-flash-lite"
+# LLM_BASE_URL=""   # e.g. OpenRouter, DeepSeek, Groq, or local Ollama
 ```
 
-**Important**: Replace `"VALUES"` in `LMS_COOKIE` with your real session cookie string. The CLI will automatically mask it in all outputs.
+**Important**: Replace `"VALUES"` placeholders with your real values locally. The tooling masks them automatically in all outputs.
 
 ---
 
-## Workspace Layout
-
-- `packages/core`: shared LMS types, HTTP client, cookie jar, sanitizer, URL builders, Cheerio parsers, LLM adapters/services, and quiz domain services.
-- `apps/cli`: existing CLI commands, flag parsing, and Arabic Markdown exporters.
-- `apps/api`: minimal Hono `/health` API skeleton.
-- `apps/web`: minimal Vite + React + TanStack Router placeholder.
-
 ## Usage
 
-### Unified CLI Entry Point
+### Workspace Commands
 
 ```bash
-# Show all commands and safety guardrails
+# Type-check every workspace package
+pnpm -r typecheck
+
+# Run core unit tests
+pnpm --filter @qatar-edu/core test
+
+# Build all packages
+pnpm -r build
+
+# Run the CLI help
 pnpm --filter @qatar-edu/cli exec tsx src/cli.ts --help
 
-# Show help for a specific command group
-pnpm --filter @qatar-edu/cli exec tsx src/cli.ts assignments --help
-pnpm --filter @qatar-edu/cli exec tsx src/cli.ts lessons --help
-pnpm --filter @qatar-edu/cli exec tsx src/cli.ts quiz --help
-pnpm --filter @qatar-edu/cli exec tsx src/cli.ts monitor --help
+# Or use the root shortcuts (same thing, shorter):
+pnpm cli -- --help
+pnpm quiz:inspect -- <url-or-id>
+pnpm quiz:draft -- <display-url>
+
+# Start the skeleton API (http://localhost:3001/health)
+pnpm api:dev
+
+# Start the skeleton web app (Vite dev server)
+pnpm web:dev
 ```
 
-### Assignments & Lessons (Read-Only `GET`)
-
-These commands require either `--class-id <id>` or `--url <fullUrl>`.
+### CLI Commands
 
 ```bash
-# List all assignments for a class
-pnpm --filter @qatar-edu/cli exec tsx src/cli.ts assignments list --class-id <your-class-id>
+# Assignments & lessons (read-only GET; needs --class-id or --url)
+pnpm --filter @qatar-edu/cli exec tsx src/cli.ts assignments list --class-id <id>
+pnpm --filter @qatar-edu/cli exec tsx src/cli.ts assignments due --class-id <id>
+pnpm --filter @qatar-edu/cli exec tsx src/cli.ts lessons list --class-id <id>
 
-# List due assignments / quizzes
-pnpm --filter @qatar-edu/cli exec tsx src/cli.ts assignments due --class-id <your-class-id>
+# Quiz inspection & scanning (read-only GET)
+pnpm --filter @qatar-edu/cli exec tsx src/cli.ts quiz inspect <showUrl|displayUrl|quizId>
+pnpm --filter @qatar-edu/cli exec tsx src/cli.ts quiz scan --class-id <id>
+pnpm --filter @qatar-edu/cli exec tsx src/cli.ts quiz scan --class-id <id> --start-new
 
-# Or use a custom URL directly
-pnpm --filter @qatar-edu/cli exec tsx src/cli.ts assignments due --url "https://<your-lms>.edu.gov.qa/student_assignments/due/<your-class-id>"
+# Quiz draft saving (dry-run by default; --apply sends draft POSTs + /pause/)
+pnpm --filter @qatar-edu/cli exec tsx src/cli.ts quiz draft <displayUrl>
+pnpm --filter @qatar-edu/cli exec tsx src/cli.ts quiz draft <displayUrl> --apply --answers '{"1":"Answer text"}'
 
-# List lessons and sections
-pnpm --filter @qatar-edu/cli exec tsx src/cli.ts lessons list --class-id <your-class-id>
+# LLM quiz solving (dry-run by default; --apply saves drafts, --submit walks to summary)
+pnpm --filter @qatar-edu/cli exec tsx src/cli.ts quiz solve <showUrl|displayUrl|quizId>
+pnpm --filter @qatar-edu/cli exec tsx src/cli.ts quiz solve <target> --provider mock   # offline test
+
+# HTTP monitor (read-only GET, auto-detects LMS entities)
+pnpm --filter @qatar-edu/cli exec tsx src/cli.ts monitor <url...>
 ```
 
-### Quiz Inspection & Scanning (Read-Only `GET`)
+Global flags: `--quiet`, `--no-report`, `--out-dir <path>`, `--help`.
 
-```bash
-# Inspect a specific quiz by show URL, display URL, or quiz ID
-pnpm --filter @qatar-edu/cli exec tsx src/cli.ts quiz inspect "https://<your-lms>.edu.gov.qa/student_quiz_assignment/show/<quiz-id>"
-pnpm --filter @qatar-edu/cli exec tsx src/cli.ts quiz inspect "https://<your-lms>.edu.gov.qa/student_take_quiz_assignment/display/<quiz-id>?part=1&results=<results-id>"
-pnpm --filter @qatar-edu/cli exec tsx src/cli.ts quiz inspect <quiz-id>
-
-# Scan all due quizzes for a class (skips unstarted attempts by default)
-pnpm --filter @qatar-edu/cli exec tsx src/cli.ts quiz scan --class-id <your-class-id>
-
-# Opt-in to inspect newly started attempts (still GET only)
-pnpm --filter @qatar-edu/cli exec tsx src/cli.ts quiz scan --class-id <your-class-id> --start-new
-```
-
-### Quiz Draft Saving (Dry-Run by Default)
-
-```bash
-# Preview what would be sent (NO POST requests are made)
-pnpm --filter @qatar-edu/cli exec tsx src/cli.ts quiz draft "https://<your-lms>.edu.gov.qa/student_take_quiz_assignment/display/<quiz-id>?part=1&results=<results-id>"
-
-# Provide custom answers as a JSON string mapping part numbers to answers
-pnpm --filter @qatar-edu/cli exec tsx src/cli.ts quiz draft <display-url> --answers '{"1":"Answer text","2":"4"}'
-
-# Actually save draft answers and pause the attempt (requires --apply)
-pnpm --filter @qatar-edu/cli exec tsx src/cli.ts quiz draft <display-url> --apply --answers '{"1":"Answer text"}'
-
-# Allow timed quizzes (aborts by default if timed_quiz=true)
-pnpm --filter @qatar-edu/cli exec tsx src/cli.ts quiz draft <display-url> --apply --allow-timed
-```
-
-**Safety**: `quiz draft` never calls `/student_take_quiz_assignment/finish/`. The `/finish/` endpoint is blocked at the HTTP client level.
-
-### HTTP Monitor (Read-Only `GET`)
-
-```bash
-# Monitor default dashboard or custom URLs
-pnpm --filter @qatar-edu/cli exec tsx src/cli.ts monitor
-pnpm --filter @qatar-edu/cli exec tsx src/cli.ts monitor "https://<your-lms>.edu.gov.qa/student_assignments/list/<your-class-id>"
-pnpm --filter @qatar-edu/cli exec tsx src/cli.ts monitor "https://<your-lms>.edu.gov.qa/student_quiz_assignment/show/<quiz-id>"
-
-# Custom CSS selector for DOM extraction
-pnpm --filter @qatar-edu/cli exec tsx src/cli.ts monitor <url> --selector "#mainContent .question"
-```
+**Safety**: `quiz draft`/`quiz solve` never call `/student_take_quiz_assignment/finish/` — it is blocked inside `LmsHttpClient` before any packet is sent.
 
 ---
 
 ## Reports Output
 
-All commands generate Arabic Markdown reports under `reports/<command>/`:
+Commands generate Arabic Markdown reports under `reports/<command>/` (timestamped file + `latest.md`):
 
 ```text
 reports/
-├── assignments-list/
-│   ├── 2026-11-22_17-00-00.md
-│   └── latest.md
-├── assignments-due/
-│   ├── 2026-11-22_17-05-00.md
-│   └── latest.md
-├── lessons-list/
-│   ├── 2026-11-22_17-10-00.md
-│   └── latest.md
-├── quiz-inspect/
-│   ├── quiz-15479350_2026-11-22_17-15-00.md
-│   └── latest.md
-├── quiz-scan/
-│   ├── 2026-11-22_17-20-00.md
-│   └── latest.md
-├── quiz-draft/
-│   ├── quiz-15479350-draft_2026-11-22_17-25-00.md
-│   └── latest.md
-└── monitor/
-    ├── 2026-11-22_17-30-00.md
-    └── latest.md
+├── assignments-list/   ├── quiz-inspect/   ├── quiz-solve/
+├── assignments-due/    ├── quiz-scan/      ├── monitor/
+├── lessons-list/       └── quiz-draft/
 ```
 
-Open `reports/<command>/latest.md` for the most recent run of that command.
+Open `reports/<command>/latest.md` for the most recent run.
+
+---
+
+## Repository Layout
+
+```text
+qatar-edu-monitor/
+├── pnpm-workspace.yaml      # workspace: apps/* + packages/*
+├── tsconfig.base.json       # shared strict TS config (nodenext, exactOptionalPropertyTypes, ...)
+│
+├── packages/core/           # @qatar-edu/core — reusable LMS engine
+│   ├── src/types/           #   domain & HTTP interfaces
+│   ├── src/core/            #   http-client, cookie-jar, sanitizer, lms-urls
+│   ├── src/parsers/         #   pure Cheerio HTML parsers
+│   ├── src/llm/             #   provider adapters, prompt-builder, validator, retry
+│   ├── src/services/        #   quiz-inspector, quiz-form.mapper, quiz-solver
+│   └── tests/               #   offline unit tests
+│
+├── apps/cli/                # @qatar-edu/cli — the CLI
+│   ├── src/cli.ts           #   entrypoint & router
+│   ├── src/cli/             #   handlers, flags, help
+│   ├── src/commands/        #   command orchestrators
+│   ├── src/exporters/       #   Arabic Markdown report generators
+│   ├── src/config.ts        #   dotenv/env -> AppConfig -> CommandContext
+│   └── tests/               #   exporter & solver integration tests
+│
+├── apps/api/                # @qatar-edu/api — Hono skeleton (/health only)
+├── apps/web/                # @qatar-edu/web — Vite + React + TanStack Router skeleton
+├── docs/                    # architecture.md, how-it-works.md
+└── reports/                 # generated Arabic reports (gitignored)
+```
+
+For a guided walkthrough of how a command flows through these files, see **`docs/how-it-works.md`**. For deep architecture details, see `docs/architecture.md`.
 
 ---
 
 ## Development & Verification
 
 ```bash
-# Type-check the project (must pass with 0 errors)
-pnpm -r typecheck
-
-# Run offline unit tests (sanitizer, parsers, exporters, safety guards)
-pnpm --filter @qatar-edu/core test
-
-# Build compiled JavaScript to dist/
-pnpm -r build
+pnpm install          # install all workspaces
+pnpm -r typecheck     # must pass with 0 errors
+pnpm -r build         # compile all packages
+pnpm --filter @qatar-edu/core test    # core unit tests
+pnpm --filter @qatar-edu/cli test     # CLI exporter/solver tests
 ```
 
 ---
 
 ## Safety & Privacy Rules
 
-- **Never commit `.env`**: It contains your real session cookie.
-- **All secrets masked**: Cookies, CSRF tokens, and sensitive fields are always displayed as `"VALUES"`.
-- **Read-only defaults**: No command submits quiz answers or starts attempts without explicit opt-in.
-- **`/finish/` blocked**: Quiz final submission is structurally impossible via this CLI.
+- **Never commit `.env`**: it contains your real session cookie and LLM keys.
+- **All secrets masked**: cookies, CSRF tokens, and sensitive fields always display as `"VALUES"`.
+- **Read-only defaults**: no command submits quiz answers or starts attempts without explicit opt-in.
+- **`/finish/` blocked**: quiz final submission is structurally impossible via this tooling.
 
-For detailed architecture and extension guidelines, see:
+---
 
-- `docs/architecture.md`
-- `AGENTS.md`
-- `CLAUDE.md`
+## Versioning
+
+- `v0.1.0` — stable single-package CLI baseline (tag on `main`).
+- `v0.2.0` — pnpm workspace monorepo (`packages/core`, `apps/cli`, `apps/api`, `apps/web`) on `feat/v0.2-monorepo`.
+
+Agent-facing rules live in `AGENTS.md` / `CLAUDE.md`.
