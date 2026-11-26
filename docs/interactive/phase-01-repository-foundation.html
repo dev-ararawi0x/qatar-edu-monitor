@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Phase 1 — Repository foundation — Hallili Interactive Docs</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 antialiased">
+  <div class="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,.18),_transparent_34rem),radial-gradient(circle_at_bottom_right,_rgba(168,85,247,.13),_transparent_30rem)]">
+    <header class="sticky top-0 z-20 border-b border-white/10 bg-slate-950/85 backdrop-blur">
+      <div class="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
+        <a href="./index.html" class="text-lg font-bold tracking-tight text-white">Hallili <span class="text-sky-300">Interactive Docs</span></a>
+        <nav class="flex gap-3 text-sm">
+          <a class="rounded-full px-3 py-1 text-slate-300 hover:bg-white/10 hover:text-white" href="./index.html">Phases</a>
+          <a class="rounded-full px-3 py-1 text-slate-300 hover:bg-white/10 hover:text-white" href="./unrecorded-decisions.html">Unrecorded decisions</a>
+        </nav>
+      </div>
+    </header>
+    <main class="mx-auto max-w-7xl px-5 py-10">
+<div class="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+  <div class="max-w-3xl">
+    <p class="text-sm font-semibold uppercase tracking-[.25em] text-sky-300">Phase 1</p>
+    <h1 class="mt-3 text-4xl font-black tracking-tight text-white">Repository foundation and architecture guardrails</h1>
+    <p class="mt-4 text-lg leading-8 text-slate-300">This phase created the executable monorepo skeleton and made invalid architecture directions visible before business features are added.</p>
+  </div>
+  <div class="rounded-2xl border border-emerald-400/30 bg-emerald-400/10 px-5 py-4">
+    <div class="text-sm font-semibold text-emerald-300">Local phase status</div>
+    <div class="text-2xl font-bold text-white">Complete</div>
+  </div>
+</div>
+
+<section class="mb-5 overflow-hidden rounded-2xl border border-white/10 bg-white/[.055] shadow-2xl shadow-black/20">
+  <button data-toggle="p1-filetree" class="flex w-full items-center justify-between px-5 py-4 text-left hover:bg-white/5">
+    <span class="text-lg font-semibold text-white">File tree and each file's role</span>
+    <span data-chevron class="transition-transform">⌄</span>
+  </button>
+  <div id="p1-filetree" class="border-t border-white/10 px-5 py-5">
+<div class="grid gap-4 lg:grid-cols-2">
+<div class="rounded-xl bg-slate-900/80 p-4 font-mono text-sm leading-7 text-slate-300">
+<pre>hallili/
+├── apps/
+│   ├── web/
+│   │   ├── src/routes/__root.tsx
+│   │   ├── src/routes/index.tsx
+│   │   ├── src/router.tsx
+│   │   ├── src/styles.css
+│   │   ├── vite.config.ts
+│   │   └── vitest.config.ts
+│   └── worker/
+│       ├── src/main.ts
+│       └── src/runtime/worker-runtime.ts
+├── packages/
+│   ├── domain/src/index.ts
+│   ├── application/src/index.ts
+│   ├── contracts/src/index.ts
+│   ├── db/src/index.ts
+│   └── integrations/src/runtime/
+│       ├── env.ts
+│       ├── logger.ts
+│       └── redaction.ts
+├── infra/docker/compose.yaml
+├── scripts/check-architecture.mjs
+├── scripts/db-compose.sh
+├── package.json
+├── pnpm-workspace.yaml
+└── turbo.json</pre>
+</div>
+<div class="space-y-3 text-sm leading-6 text-slate-300">
+  <p><b class="text-white">apps/web:</b> the TanStack Start process. It owns UI/SSR now and will own the only browser-facing REST API in later phases.</p>
+  <p><b class="text-white">apps/worker:</b> a separate long-running Node.js process. It currently proves independent startup/shutdown and emits heartbeat logs; it exposes no HTTP business API.</p>
+  <p><b class="text-white">packages/domain:</b> framework-free domain primitives and errors. It may not import Drizzle, TanStack, Better Auth, LMS, or AI infrastructure.</p>
+  <p><b class="text-white">packages/application:</b> actor context, application errors, and narrow ports used by future use cases.</p>
+  <p><b class="text-white">packages/contracts:</b> Zod transport schemas, currently the shared safe API error envelope.</p>
+  <p><b class="text-white">packages/db:</b> reserved package boundary for Drizzle persistence introduced in Phase 2.</p>
+  <p><b class="text-white">packages/integrations/runtime:</b> dotenv loading, fail-closed environment parsing, secret-safe structured logging, and recursive redaction.</p>
+  <p><b class="text-white">infra/docker/compose.yaml:</b> local PostgreSQL 17 service with a healthcheck and named volume.</p>
+  <p><b class="text-white">scripts/db-compose.sh:</b> chooses Docker when usable, otherwise rootless Podman, and starts the user Podman socket when needed.</p>
+  <p><b class="text-white">apps/web/vitest.config.ts:</b> isolates unit tests from the TanStack/Vite production plugin pipeline.</p>
+  <p><b class="text-white">scripts/check-architecture.mjs:</b> static guardrails for forbidden dependency edges.</p>
+</div>
+</div>
+</div>
+</section>
+<section class="mb-5 overflow-hidden rounded-2xl border border-white/10 bg-white/[.055] shadow-2xl shadow-black/20">
+  <button data-toggle="p1-interactions" class="flex w-full items-center justify-between px-5 py-4 text-left hover:bg-white/5">
+    <span class="text-lg font-semibold text-white">How the apps and packages communicate</span>
+    <span data-chevron class="transition-transform">⌄</span>
+  </button>
+  <div id="p1-interactions" class="border-t border-white/10 px-5 py-5">
+<div class="rounded-xl bg-slate-900/80 p-5">
+<ol class="space-y-4 text-slate-300">
+  <li><span class="font-semibold text-sky-300">1.</span> The browser talks only to <b class="text-white">apps/web</b>. UI route files do not import database or integration packages.</li>
+  <li><span class="font-semibold text-sky-300">2.</span> Web and Worker are composition roots. They will wire concrete adapters into Application use cases rather than placing business rules in routes.</li>
+  <li><span class="font-semibold text-sky-300">3.</span> Application code will depend inward on Domain and outward only through narrow ports.</li>
+  <li><span class="font-semibold text-sky-300">4.</span> DB, LMS, AI, encryption, logging, and runtime configuration implementations remain outside Domain/Application.</li>
+  <li><span class="font-semibold text-sky-300">5.</span> The Worker starts independently, emits sanitized structured heartbeats, stops on SIGTERM/SIGINT, and cannot reference a final-submission capability.</li>
+</ol>
+</div>
+<div class="mt-5 grid gap-4 md:grid-cols-3">
+  <div class="rounded-xl border border-emerald-400/25 bg-emerald-400/10 p-4"><b class="text-emerald-200">Allowed</b><p class="mt-2 text-sm text-slate-300">apps → application → domain; composition roots may wire adapters.</p></div>
+  <div class="rounded-xl border border-rose-400/25 bg-rose-400/10 p-4"><b class="text-rose-200">Forbidden</b><p class="mt-2 text-sm text-slate-300">Domain → infrastructure, route → SQL/provider, Worker → final action.</p></div>
+  <div class="rounded-xl border border-amber-400/25 bg-amber-400/10 p-4"><b class="text-amber-200">Fail closed</b><p class="mt-2 text-sm text-slate-300">Missing critical env values stop startup; LMS and remote draft writes default off.</p></div>
+</div>
+</div>
+</section>
+<section class="mb-5 overflow-hidden rounded-2xl border border-white/10 bg-white/[.055] shadow-2xl shadow-black/20">
+  <button data-toggle="p1-verify" class="flex w-full items-center justify-between px-5 py-4 text-left hover:bg-white/5">
+    <span class="text-lg font-semibold text-white">Verification, tests, and gates</span>
+    <span data-chevron class="transition-transform">⌄</span>
+  </button>
+  <div id="p1-verify" class="border-t border-white/10 px-5 py-5">
+<div class="flex flex-wrap gap-2" data-group="verify">
+  <button data-group="verify" data-tab="verify-commands" class="rounded-full bg-sky-500 px-4 py-2 text-sm font-semibold text-white">Commands</button>
+  <button data-group="verify" data-tab="verify-evidence" class="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-slate-200">Evidence</button>
+  <button data-group="verify" data-tab="verify-gates" class="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-slate-200">Gates</button>
+</div>
+<div id="verify-commands" data-group="verify" data-panel class="mt-4 rounded-xl bg-slate-900/80 p-4 font-mono text-sm text-slate-300"><pre>pnpm install
+pnpm -r typecheck
+pnpm lint
+pnpm -r test
+pnpm --filter @hallili/web build
+DATABASE_URL=postgres://hallili:hallili@localhost:5432/hallili ENCRYPTION_KEY=phase1-verification-key pnpm --filter @hallili/worker start</pre></div>
+<div id="verify-evidence" data-group="verify" data-panel class="mt-4 hidden rounded-xl bg-slate-900/80 p-4 text-sm leading-7 text-slate-300">The web server returned the SSR home page locally; the worker printed <code>worker_started</code>, heartbeat, and <code>worker_stopped</code>; environment tests prove missing config fails closed; redaction tests prove credential-shaped keys are replaced with <code>VALUES</code>; architecture checks passed.</div>
+<div id="verify-gates" data-group="verify" data-panel class="mt-4 hidden rounded-xl bg-slate-900/80 p-4 text-sm leading-7 text-slate-300">Phase 1 does not authorize any LMS behavior. OD-01 through OD-07 remain external evidence gates. Phase 0 backlog rows stay <code>BLOCKED</code>; real LMS and remote mutation paths remain disabled by default.</div>
+</div>
+</section>
+<section class="mb-5 overflow-hidden rounded-2xl border border-white/10 bg-white/[.055] shadow-2xl shadow-black/20">
+  <button data-toggle="p1-flow" class="flex w-full items-center justify-between px-5 py-4 text-left hover:bg-white/5">
+    <span class="text-lg font-semibold text-white">Current runtime state</span>
+    <span data-chevron class="transition-transform">⌄</span>
+  </button>
+  <div id="p1-flow" class="border-t border-white/10 px-5 py-5">
+<div class="grid gap-4 md:grid-cols-5">
+  <div class="rounded-xl bg-sky-400/10 p-4 text-center md:col-span-1"><b>Browser</b><p class="text-xs text-slate-400">SSR request</p></div>
+  <div class="rounded-xl bg-sky-400/20 p-4 text-center md:col-span-1"><b>TanStack Start</b><p class="text-xs text-slate-400">only HTTP backend</p></div>
+  <div class="rounded-xl bg-white/10 p-4 text-center md:col-span-1"><b>Application boundary</b><p class="text-xs text-slate-400">future use cases</p></div>
+  <div class="rounded-xl bg-white/10 p-4 text-center md:col-span-1"><b>Domain</b><p class="text-xs text-slate-400">framework-free rules</p></div>
+  <div class="rounded-xl bg-purple-400/10 p-4 text-center md:col-span-1"><b>Worker</b><p class="text-xs text-slate-400">separate process, no API</p></div>
+</div>
+<p class="mt-5 text-sm leading-7 text-slate-300">Phase 1 intentionally has no solving state machine, database schema, authentication, LMS traffic, or AI traffic. Those are introduced only in their owning phases.</p>
+</div>
+</section></main>
+  </div>
+  <script>
+    document.querySelectorAll('[data-toggle]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const target = document.getElementById(button.dataset.toggle)
+        if (!target) return
+        target.classList.toggle('hidden')
+        button.querySelector('[data-chevron]')?.classList.toggle('rotate-180')
+      })
+    })
+    document.querySelectorAll('[data-tab]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const group = button.dataset.group
+        document.querySelectorAll(`[data-tab][data-group="${group}"]`).forEach((b) => b.classList.remove('bg-sky-500','text-white'))
+        button.classList.add('bg-sky-500','text-white')
+        document.querySelectorAll(`[data-panel][data-group="${group}"]`).forEach((panel) => panel.classList.add('hidden'))
+        document.getElementById(button.dataset.tab)?.classList.remove('hidden')
+      })
+    })
+  </script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+node_modules
+dist
+.output
+.turbo
+coverage
+pnpm-lock.yaml
+docs/interactive
+docs/product
+docs/technical-design
+docs/implementation
+docs/README.md

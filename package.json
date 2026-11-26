@@ -1,0 +1,31 @@
+{
+  "name": "hallili",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.15.0",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "lint": "eslint . && node scripts/check-architecture.mjs",
+    "test": "turbo run test",
+    "test:unit": "vitest run tests/unit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "db:up": "scripts/db-compose.sh up",
+    "db:down": "scripts/db-compose.sh down",
+    "db:migrate": "pnpm --filter @hallili/db migrate",
+    "check:architecture": "node scripts/check-architecture.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/node": "22.20.5",
+    "eslint": "10.15.0",
+    "prettier": "3.10.1",
+    "tsx": "4.23.15",
+    "turbo": "2.11.12",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.73.0",
+    "vitest": "5.1.0"
+  }
+}
