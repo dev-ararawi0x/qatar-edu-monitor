@@ -41,3 +41,5 @@ export * from './ownership'
 
 export * from './lms/ports'
 export * from './lms/use-cases'
+export * from './catalog/ports'
+export * from './catalog/use-cases'

@@ -18,3 +18,4 @@ export function assertNever(value: never): never {
 }
 
 export * from './lms'
+export * from './catalog'

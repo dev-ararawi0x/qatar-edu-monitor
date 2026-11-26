@@ -2,6 +2,7 @@
 import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
 import type * as React from 'react'
 import appCss from '~/styles.css?url'
+import { AppQueryProvider } from '~/lib/query-client'
 
 export const Route = createRootRoute({
   head: () => ({
@@ -22,7 +23,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        {children}
+        <AppQueryProvider>{children}</AppQueryProvider>
         <Scripts />
       </body>
     </html>

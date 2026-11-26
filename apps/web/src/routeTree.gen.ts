@@ -16,6 +16,10 @@ import { Route as ProtectedDashboardRouteImport } from './routes/_protected/dash
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiV1LmsConnectionIndexRouteImport } from './routes/api/v1/lms-connection/index'
 import { Route as ApiV1LmsConnectionValidateRouteImport } from './routes/api/v1/lms-connection/validate'
+import { Route as ApiV1SubjectsIndexRouteImport } from './routes/api/v1/subjects/index'
+import { Route as ApiV1SubjectsRefreshIndexRouteImport } from './routes/api/v1/subjects/refresh/index'
+import { Route as ApiV1SubjectsSubjectIdAssessmentsIndexRouteImport } from './routes/api/v1/subjects/$subjectId/assessments/index'
+import { Route as ApiV1SubjectsSubjectIdAssessmentsRefreshRouteImport } from './routes/api/v1/subjects/$subjectId/assessments/refresh'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -52,6 +56,29 @@ const ApiV1LmsConnectionValidateRoute =
     path: '/api/v1/lms-connection/validate',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiV1SubjectsIndexRoute = ApiV1SubjectsIndexRouteImport.update({
+  id: '/api/v1/subjects/',
+  path: '/api/v1/subjects/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1SubjectsRefreshIndexRoute =
+  ApiV1SubjectsRefreshIndexRouteImport.update({
+    id: '/api/v1/subjects/refresh/',
+    path: '/api/v1/subjects/refresh/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiV1SubjectsSubjectIdAssessmentsIndexRoute =
+  ApiV1SubjectsSubjectIdAssessmentsIndexRouteImport.update({
+    id: '/api/v1/subjects/$subjectId/assessments/',
+    path: '/api/v1/subjects/$subjectId/assessments/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiV1SubjectsSubjectIdAssessmentsRefreshRoute =
+  ApiV1SubjectsSubjectIdAssessmentsRefreshRouteImport.update({
+    id: '/api/v1/subjects/$subjectId/assessments/refresh',
+    path: '/api/v1/subjects/$subjectId/assessments/refresh',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -60,6 +87,10 @@ export interface FileRoutesByFullPath {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/v1/lms-connection/validate': typeof ApiV1LmsConnectionValidateRoute
   '/api/v1/lms-connection/': typeof ApiV1LmsConnectionIndexRoute
+  '/api/v1/subjects/': typeof ApiV1SubjectsIndexRoute
+  '/api/v1/subjects/refresh/': typeof ApiV1SubjectsRefreshIndexRoute
+  '/api/v1/subjects/$subjectId/assessments/refresh': typeof ApiV1SubjectsSubjectIdAssessmentsRefreshRoute
+  '/api/v1/subjects/$subjectId/assessments/': typeof ApiV1SubjectsSubjectIdAssessmentsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -68,6 +99,10 @@ export interface FileRoutesByTo {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/v1/lms-connection/validate': typeof ApiV1LmsConnectionValidateRoute
   '/api/v1/lms-connection': typeof ApiV1LmsConnectionIndexRoute
+  '/api/v1/subjects': typeof ApiV1SubjectsIndexRoute
+  '/api/v1/subjects/refresh': typeof ApiV1SubjectsRefreshIndexRoute
+  '/api/v1/subjects/$subjectId/assessments/refresh': typeof ApiV1SubjectsSubjectIdAssessmentsRefreshRoute
+  '/api/v1/subjects/$subjectId/assessments': typeof ApiV1SubjectsSubjectIdAssessmentsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -78,6 +113,10 @@ export interface FileRoutesById {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/v1/lms-connection/validate': typeof ApiV1LmsConnectionValidateRoute
   '/api/v1/lms-connection/': typeof ApiV1LmsConnectionIndexRoute
+  '/api/v1/subjects/': typeof ApiV1SubjectsIndexRoute
+  '/api/v1/subjects/refresh/': typeof ApiV1SubjectsRefreshIndexRoute
+  '/api/v1/subjects/$subjectId/assessments/refresh': typeof ApiV1SubjectsSubjectIdAssessmentsRefreshRoute
+  '/api/v1/subjects/$subjectId/assessments/': typeof ApiV1SubjectsSubjectIdAssessmentsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -88,6 +127,10 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/v1/lms-connection/validate'
     | '/api/v1/lms-connection/'
+    | '/api/v1/subjects/'
+    | '/api/v1/subjects/refresh/'
+    | '/api/v1/subjects/$subjectId/assessments/refresh'
+    | '/api/v1/subjects/$subjectId/assessments/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -96,6 +139,10 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/v1/lms-connection/validate'
     | '/api/v1/lms-connection'
+    | '/api/v1/subjects'
+    | '/api/v1/subjects/refresh'
+    | '/api/v1/subjects/$subjectId/assessments/refresh'
+    | '/api/v1/subjects/$subjectId/assessments'
   id:
     | '__root__'
     | '/'
@@ -105,6 +152,10 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/v1/lms-connection/validate'
     | '/api/v1/lms-connection/'
+    | '/api/v1/subjects/'
+    | '/api/v1/subjects/refresh/'
+    | '/api/v1/subjects/$subjectId/assessments/refresh'
+    | '/api/v1/subjects/$subjectId/assessments/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -114,6 +165,10 @@ export interface RootRouteChildren {
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiV1LmsConnectionValidateRoute: typeof ApiV1LmsConnectionValidateRoute
   ApiV1LmsConnectionIndexRoute: typeof ApiV1LmsConnectionIndexRoute
+  ApiV1SubjectsIndexRoute: typeof ApiV1SubjectsIndexRoute
+  ApiV1SubjectsRefreshIndexRoute: typeof ApiV1SubjectsRefreshIndexRoute
+  ApiV1SubjectsSubjectIdAssessmentsRefreshRoute: typeof ApiV1SubjectsSubjectIdAssessmentsRefreshRoute
+  ApiV1SubjectsSubjectIdAssessmentsIndexRoute: typeof ApiV1SubjectsSubjectIdAssessmentsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -167,6 +222,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1LmsConnectionValidateRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/subjects/': {
+      id: '/api/v1/subjects/'
+      path: '/api/v1/subjects'
+      fullPath: '/api/v1/subjects/'
+      preLoaderRoute: typeof ApiV1SubjectsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/subjects/refresh/': {
+      id: '/api/v1/subjects/refresh/'
+      path: '/api/v1/subjects/refresh'
+      fullPath: '/api/v1/subjects/refresh/'
+      preLoaderRoute: typeof ApiV1SubjectsRefreshIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/subjects/$subjectId/assessments/': {
+      id: '/api/v1/subjects/$subjectId/assessments/'
+      path: '/api/v1/subjects/$subjectId/assessments'
+      fullPath: '/api/v1/subjects/$subjectId/assessments/'
+      preLoaderRoute: typeof ApiV1SubjectsSubjectIdAssessmentsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/subjects/$subjectId/assessments/refresh': {
+      id: '/api/v1/subjects/$subjectId/assessments/refresh'
+      path: '/api/v1/subjects/$subjectId/assessments/refresh'
+      fullPath: '/api/v1/subjects/$subjectId/assessments/refresh'
+      preLoaderRoute: typeof ApiV1SubjectsSubjectIdAssessmentsRefreshRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -189,6 +272,12 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiV1LmsConnectionValidateRoute: ApiV1LmsConnectionValidateRoute,
   ApiV1LmsConnectionIndexRoute: ApiV1LmsConnectionIndexRoute,
+  ApiV1SubjectsIndexRoute: ApiV1SubjectsIndexRoute,
+  ApiV1SubjectsRefreshIndexRoute: ApiV1SubjectsRefreshIndexRoute,
+  ApiV1SubjectsSubjectIdAssessmentsRefreshRoute:
+    ApiV1SubjectsSubjectIdAssessmentsRefreshRoute,
+  ApiV1SubjectsSubjectIdAssessmentsIndexRoute:
+    ApiV1SubjectsSubjectIdAssessmentsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

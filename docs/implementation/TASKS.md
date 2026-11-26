@@ -75,12 +75,12 @@ A task is done when its code and docs are reviewed; typecheck/lint/tests pass; a
 
 | ID | Status | Priority | Task | Depends on | Definition of Done |
 |---|---|---|---|---|---|
-| H-040 | TODO | P1 | Implement Subject and Assessment domain types | H-014,H-005 | External IDs remain strings; source status separated from display status |
-| H-041 | TODO | P1 | Add subjects/assessments schema and repositories | H-018,H-040 | FKs, unique external IDs, due-date index and migrations pass |
-| H-042 | TODO | P1 | Implement subject list/refresh use cases | H-034,H-041 | Ownership, upsert, parser failure tests pass |
-| H-043 | TODO | P1 | Implement assessment list/refresh use cases | H-034,H-041,H-040 | Per-subject data normalized; unknown timed status is safe |
-| H-044 | TODO | P1 | Implement catalog API routes and Zod DTOs | H-015,H-042,H-043,H-024 | GET/refresh contracts pass; no side effect occurs in GET |
-| H-045 | TODO | P1 | Implement dashboard subject/assessment UI | H-044 | Empty/loading/error/success states; responsive layout; status distinctions correct |
+| H-040 | DONE | P1 | Implement Subject and Assessment domain types | H-014,H-005 | External IDs remain strings; source status separated from display status |
+| H-041 | DONE | P1 | Add subjects/assessments schema and repositories | H-018,H-040 | FKs, unique external IDs, due-date index and migrations pass |
+| H-042 | DONE | P1 | Implement subject list/refresh use cases | H-034,H-041 | Ownership, upsert, parser failure tests pass |
+| H-043 | DONE | P1 | Implement assessment list/refresh use cases | H-034,H-041,H-040 | Per-subject data normalized; unknown timed status is safe |
+| H-044 | DONE | P1 | Implement catalog API routes and Zod DTOs | H-015,H-042,H-043,H-024 | GET/refresh contracts pass; no side effect occurs in GET |
+| H-045 | DONE | P1 | Implement dashboard subject/assessment UI | H-044 | Empty/loading/error/success states; responsive layout; status distinctions correct |
 
 ## Phase 5 — Quota and durable jobs
 

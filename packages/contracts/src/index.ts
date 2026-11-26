@@ -15,3 +15,4 @@ export const isoDateTimeSchema = z.iso.datetime()
 export const uuidSchema = z.uuid()
 
 export * from './lms'
+export * from './catalog'
