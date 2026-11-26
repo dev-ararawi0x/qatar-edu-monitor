@@ -1,6 +1,6 @@
 import type { AnswerDraftSnapshot, DraftRepositoryPort, JobQuestionDraftSnapshot, OwnedDraftSnapshot } from '@hallili/application'
 import type { AnswerPayload, NormalizedQuestion } from '@hallili/domain'
-import { and, asc, eq, sql } from 'drizzle-orm'
+import { and, asc, eq } from 'drizzle-orm'
 import type { HalliliDatabase } from '../client'
 import { answerDrafts, draftRevisions } from '../schema/drafts'
 import { jobQuestions, solveJobs } from '../schema/solving'

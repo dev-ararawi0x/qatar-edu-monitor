@@ -1,6 +1,6 @@
 import { ProcessSolveJob } from '@hallili/application'
 import { createDatabase, DrizzleLmsCredentialRepository, DrizzleSolveJobProcessingRepository, PostgresJobQueue, PostgresLmsAccountLease, PostgresLmsRateLimiter } from '@hallili/db'
-import { AesGcmCredentialCipher, FakeAiDraftGenerator, FakeLmsAdapter } from '@hallili/integrations'
+import { AesGcmCredentialCipher, FakeAiDraftGenerator, FakeLmsAdapter, OpenAiCompatibleDraftGenerator, RetryingAiDraftGenerator } from '@hallili/integrations'
 import { createSecretSafeLogger, loadLocalEnv, parseWorkerEnv } from '@hallili/integrations/runtime'
 import { WorkerRuntime } from './runtime/worker-runtime'
 
@@ -11,12 +11,23 @@ async function main() {
   const database = createDatabase(env.DATABASE_URL)
   const queue = new PostgresJobQueue(database.db)
   const processingRepository = new DrizzleSolveJobProcessingRepository(database.db)
+  const fakeAi = new FakeAiDraftGenerator()
+  const ai = env.AI_PROVIDER === 'openai-compatible'
+    ? new RetryingAiDraftGenerator(
+        new OpenAiCompatibleDraftGenerator({
+          baseUrl: env.AI_BASE_URL ?? (() => { throw new Error('AI_BASE_URL is required for the configured AI provider.') })(),
+          apiKey: env.AI_API_KEY ?? (() => { throw new Error('AI_API_KEY is required for the configured AI provider.') })(),
+          model: env.AI_MODEL ?? (() => { throw new Error('AI_MODEL is required for the configured AI provider.') })(),
+        }),
+        fakeAi,
+      )
+    : fakeAi
   const processor = new ProcessSolveJob(
     processingRepository,
     new DrizzleLmsCredentialRepository(database.db),
     new AesGcmCredentialCipher(env.ENCRYPTION_KEY),
     new FakeLmsAdapter(),
-    new FakeAiDraftGenerator(),
+    ai,
     new PostgresLmsAccountLease(database.db),
     new PostgresLmsRateLimiter(database.db),
     { now: () => new Date() },

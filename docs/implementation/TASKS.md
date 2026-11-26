@@ -110,14 +110,14 @@ A task is done when its code and docs are reviewed; typecheck/lint/tests pass; a
 
 | ID | Status | Priority | Task | Depends on | Definition of Done |
 |---|---|---|---|---|---|
-| H-070 | TODO | P1 | Define supported question/answer schemas | H-036,H-005,H-004 | Schemas versioned and tied to known fixtures |
-| H-071 | TODO | P1 | Implement AI generation port and fake provider | H-014,H-070 | Application tests do not call real provider |
-| H-072 | TODO | P1 | Implement one configured provider adapter | H-004,H-071 | Timeout/429/503/auth/schema cases tested; secrets redacted |
-| H-073 | TODO | P1 | Implement bounded retry/fallback policy | H-071,H-072 | Retry-After, max attempts, fallback eligibility covered |
-| H-074 | TODO | P1 | Implement AI output and option-value validator | H-070,H-071 | Invalid/out-of-range values rejected; no guessed answer persisted |
-| H-075 | TODO | P1 | Implement answer_drafts and draft_revisions persistence | H-018,H-070 | One current draft per question; revisions unique by version |
-| H-076 | TODO | P1 | Implement UpdateDraft optimistic concurrency use case/API | H-075,H-024 | Stale expectedVersion returns 409; every edit creates revision |
-| H-077 | TODO | P1 | Implement review UI and progress polling | H-055,H-065,H-076 | User sees sanitized progress, explanation, confidence, and edit state |
+| H-070 | DONE | P1 | Define supported question/answer schemas | H-036,H-005,H-004 | Schemas versioned and tied to known fixtures |
+| H-071 | DONE | P1 | Implement AI generation port and fake provider | H-014,H-070 | Application tests do not call real provider |
+| H-072 | DONE | P1 | Implement one configured provider adapter | H-004,H-071 | Timeout/429/503/auth/schema cases tested; secrets redacted |
+| H-073 | DONE | P1 | Implement bounded retry/fallback policy | H-071,H-072 | Retry-After, max attempts, fallback eligibility covered |
+| H-074 | DONE | P1 | Implement AI output and option-value validator | H-070,H-071 | Invalid/out-of-range values rejected; no guessed answer persisted |
+| H-075 | DONE | P1 | Implement answer_drafts and draft_revisions persistence | H-018,H-070 | One current draft per question; revisions unique by version |
+| H-076 | DONE | P1 | Implement UpdateDraft optimistic concurrency use case/API | H-075,H-024 | Stale expectedVersion returns 409; every edit creates revision |
+| H-077 | DONE | P1 | Implement review UI and progress polling | H-055,H-065,H-076 | User sees sanitized progress, explanation, confidence, and edit state |
 
 ## Phase 8 — Authorized external integration
 

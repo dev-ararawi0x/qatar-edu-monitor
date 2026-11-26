@@ -12,7 +12,10 @@ const baseEnvSchema = z.object({
   MICROSOFT_ALLOW_COMMON_TENANT: z.enum(['true', 'false']).default('false'),
   LMS_INTEGRATION_ENABLED: z.enum(['true', 'false']).default('false'),
   LMS_REMOTE_DRAFTS_ENABLED: z.enum(['true', 'false']).default('false'),
-  AI_PROVIDER: z.enum(['fake']).default('fake'),
+  AI_PROVIDER: z.enum(['fake', 'openai-compatible']).default('fake'),
+  AI_BASE_URL: z.url().optional(),
+  AI_MODEL: z.string().min(1).optional(),
+  AI_API_KEY: z.string().min(1).optional(),
 })
 
 export type RuntimeEnv = z.infer<typeof baseEnvSchema>
