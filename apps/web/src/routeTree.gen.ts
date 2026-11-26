@@ -15,6 +15,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as ProtectedDashboardRouteImport } from './routes/_protected/dashboard'
 import { Route as ProtectedJobsIndexRouteImport } from './routes/_protected/jobs/index'
 import { Route as ProtectedJobsJobIdRouteImport } from './routes/_protected/jobs/$jobId'
+import { Route as ProtectedNotificationsIndexRouteImport } from './routes/_protected/notifications/index'
 import { Route as ProtectedOpsIndexRouteImport } from './routes/_protected/ops/index'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiV1HealthRouteImport } from './routes/api/v1/health'
@@ -23,12 +24,14 @@ import { Route as ApiV1JobsIndexRouteImport } from './routes/api/v1/jobs/index'
 import { Route as ApiV1JobsSolveRouteImport } from './routes/api/v1/jobs/solve'
 import { Route as ApiV1LmsConnectionIndexRouteImport } from './routes/api/v1/lms-connection/index'
 import { Route as ApiV1LmsConnectionValidateRouteImport } from './routes/api/v1/lms-connection/validate'
+import { Route as ApiV1NotificationsIndexRouteImport } from './routes/api/v1/notifications/index'
 import { Route as ApiV1SubjectsIndexRouteImport } from './routes/api/v1/subjects/index'
 import { Route as ApiV1DraftsDraftIdIndexRouteImport } from './routes/api/v1/drafts/$draftId/index'
 import { Route as ApiV1DraftsDraftIdReviewRouteImport } from './routes/api/v1/drafts/$draftId/review'
 import { Route as ApiV1JobsJobIdIndexRouteImport } from './routes/api/v1/jobs/$jobId/index'
 import { Route as ApiV1JobsJobIdQuestionsRouteImport } from './routes/api/v1/jobs/$jobId/questions'
 import { Route as ApiV1JobsJobIdResumeRouteImport } from './routes/api/v1/jobs/$jobId/resume'
+import { Route as ApiV1NotificationsNotificationIdReadRouteImport } from './routes/api/v1/notifications/$notificationId/read'
 import { Route as ApiV1SubjectsRefreshIndexRouteImport } from './routes/api/v1/subjects/refresh/index'
 import { Route as ApiV1SubjectsSubjectIdAssessmentsIndexRouteImport } from './routes/api/v1/subjects/$subjectId/assessments/index'
 import { Route as ApiV1SubjectsSubjectIdAssessmentsRefreshRouteImport } from './routes/api/v1/subjects/$subjectId/assessments/refresh'
@@ -62,6 +65,12 @@ const ProtectedJobsJobIdRoute = ProtectedJobsJobIdRouteImport.update({
   path: '/jobs/$jobId',
   getParentRoute: () => ProtectedRoute,
 } as any)
+const ProtectedNotificationsIndexRoute =
+  ProtectedNotificationsIndexRouteImport.update({
+    id: '/notifications/',
+    path: '/notifications/',
+    getParentRoute: () => ProtectedRoute,
+  } as any)
 const ProtectedOpsIndexRoute = ProtectedOpsIndexRouteImport.update({
   id: '/ops/',
   path: '/ops/',
@@ -103,6 +112,11 @@ const ApiV1LmsConnectionValidateRoute =
     path: '/api/v1/lms-connection/validate',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiV1NotificationsIndexRoute = ApiV1NotificationsIndexRouteImport.update({
+  id: '/api/v1/notifications/',
+  path: '/api/v1/notifications/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1SubjectsIndexRoute = ApiV1SubjectsIndexRouteImport.update({
   id: '/api/v1/subjects/',
   path: '/api/v1/subjects/',
@@ -134,6 +148,12 @@ const ApiV1JobsJobIdResumeRoute = ApiV1JobsJobIdResumeRouteImport.update({
   path: '/api/v1/jobs/$jobId/resume',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1NotificationsNotificationIdReadRoute =
+  ApiV1NotificationsNotificationIdReadRouteImport.update({
+    id: '/api/v1/notifications/$notificationId/read',
+    path: '/api/v1/notifications/$notificationId/read',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiV1SubjectsRefreshIndexRoute =
   ApiV1SubjectsRefreshIndexRouteImport.update({
     id: '/api/v1/subjects/refresh/',
@@ -162,15 +182,18 @@ export interface FileRoutesByFullPath {
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/metrics': typeof ApiV1MetricsRoute
   '/jobs/': typeof ProtectedJobsIndexRoute
+  '/notifications/': typeof ProtectedNotificationsIndexRoute
   '/ops/': typeof ProtectedOpsIndexRoute
   '/api/v1/jobs/solve': typeof ApiV1JobsSolveRoute
   '/api/v1/lms-connection/validate': typeof ApiV1LmsConnectionValidateRoute
   '/api/v1/jobs/': typeof ApiV1JobsIndexRoute
   '/api/v1/lms-connection/': typeof ApiV1LmsConnectionIndexRoute
+  '/api/v1/notifications/': typeof ApiV1NotificationsIndexRoute
   '/api/v1/subjects/': typeof ApiV1SubjectsIndexRoute
   '/api/v1/drafts/$draftId/review': typeof ApiV1DraftsDraftIdReviewRoute
   '/api/v1/jobs/$jobId/questions': typeof ApiV1JobsJobIdQuestionsRoute
   '/api/v1/jobs/$jobId/resume': typeof ApiV1JobsJobIdResumeRoute
+  '/api/v1/notifications/$notificationId/read': typeof ApiV1NotificationsNotificationIdReadRoute
   '/api/v1/drafts/$draftId/': typeof ApiV1DraftsDraftIdIndexRoute
   '/api/v1/jobs/$jobId/': typeof ApiV1JobsJobIdIndexRoute
   '/api/v1/subjects/refresh/': typeof ApiV1SubjectsRefreshIndexRoute
@@ -186,15 +209,18 @@ export interface FileRoutesByTo {
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/metrics': typeof ApiV1MetricsRoute
   '/jobs': typeof ProtectedJobsIndexRoute
+  '/notifications': typeof ProtectedNotificationsIndexRoute
   '/ops': typeof ProtectedOpsIndexRoute
   '/api/v1/jobs/solve': typeof ApiV1JobsSolveRoute
   '/api/v1/lms-connection/validate': typeof ApiV1LmsConnectionValidateRoute
   '/api/v1/jobs': typeof ApiV1JobsIndexRoute
   '/api/v1/lms-connection': typeof ApiV1LmsConnectionIndexRoute
+  '/api/v1/notifications': typeof ApiV1NotificationsIndexRoute
   '/api/v1/subjects': typeof ApiV1SubjectsIndexRoute
   '/api/v1/drafts/$draftId/review': typeof ApiV1DraftsDraftIdReviewRoute
   '/api/v1/jobs/$jobId/questions': typeof ApiV1JobsJobIdQuestionsRoute
   '/api/v1/jobs/$jobId/resume': typeof ApiV1JobsJobIdResumeRoute
+  '/api/v1/notifications/$notificationId/read': typeof ApiV1NotificationsNotificationIdReadRoute
   '/api/v1/drafts/$draftId': typeof ApiV1DraftsDraftIdIndexRoute
   '/api/v1/jobs/$jobId': typeof ApiV1JobsJobIdIndexRoute
   '/api/v1/subjects/refresh': typeof ApiV1SubjectsRefreshIndexRoute
@@ -212,15 +238,18 @@ export interface FileRoutesById {
   '/api/v1/health': typeof ApiV1HealthRoute
   '/api/v1/metrics': typeof ApiV1MetricsRoute
   '/_protected/jobs/': typeof ProtectedJobsIndexRoute
+  '/_protected/notifications/': typeof ProtectedNotificationsIndexRoute
   '/_protected/ops/': typeof ProtectedOpsIndexRoute
   '/api/v1/jobs/solve': typeof ApiV1JobsSolveRoute
   '/api/v1/lms-connection/validate': typeof ApiV1LmsConnectionValidateRoute
   '/api/v1/jobs/': typeof ApiV1JobsIndexRoute
   '/api/v1/lms-connection/': typeof ApiV1LmsConnectionIndexRoute
+  '/api/v1/notifications/': typeof ApiV1NotificationsIndexRoute
   '/api/v1/subjects/': typeof ApiV1SubjectsIndexRoute
   '/api/v1/drafts/$draftId/review': typeof ApiV1DraftsDraftIdReviewRoute
   '/api/v1/jobs/$jobId/questions': typeof ApiV1JobsJobIdQuestionsRoute
   '/api/v1/jobs/$jobId/resume': typeof ApiV1JobsJobIdResumeRoute
+  '/api/v1/notifications/$notificationId/read': typeof ApiV1NotificationsNotificationIdReadRoute
   '/api/v1/drafts/$draftId/': typeof ApiV1DraftsDraftIdIndexRoute
   '/api/v1/jobs/$jobId/': typeof ApiV1JobsJobIdIndexRoute
   '/api/v1/subjects/refresh/': typeof ApiV1SubjectsRefreshIndexRoute
@@ -238,15 +267,18 @@ export interface FileRouteTypes {
     | '/api/v1/health'
     | '/api/v1/metrics'
     | '/jobs/'
+    | '/notifications/'
     | '/ops/'
     | '/api/v1/jobs/solve'
     | '/api/v1/lms-connection/validate'
     | '/api/v1/jobs/'
     | '/api/v1/lms-connection/'
+    | '/api/v1/notifications/'
     | '/api/v1/subjects/'
     | '/api/v1/drafts/$draftId/review'
     | '/api/v1/jobs/$jobId/questions'
     | '/api/v1/jobs/$jobId/resume'
+    | '/api/v1/notifications/$notificationId/read'
     | '/api/v1/drafts/$draftId/'
     | '/api/v1/jobs/$jobId/'
     | '/api/v1/subjects/refresh/'
@@ -262,15 +294,18 @@ export interface FileRouteTypes {
     | '/api/v1/health'
     | '/api/v1/metrics'
     | '/jobs'
+    | '/notifications'
     | '/ops'
     | '/api/v1/jobs/solve'
     | '/api/v1/lms-connection/validate'
     | '/api/v1/jobs'
     | '/api/v1/lms-connection'
+    | '/api/v1/notifications'
     | '/api/v1/subjects'
     | '/api/v1/drafts/$draftId/review'
     | '/api/v1/jobs/$jobId/questions'
     | '/api/v1/jobs/$jobId/resume'
+    | '/api/v1/notifications/$notificationId/read'
     | '/api/v1/drafts/$draftId'
     | '/api/v1/jobs/$jobId'
     | '/api/v1/subjects/refresh'
@@ -287,15 +322,18 @@ export interface FileRouteTypes {
     | '/api/v1/health'
     | '/api/v1/metrics'
     | '/_protected/jobs/'
+    | '/_protected/notifications/'
     | '/_protected/ops/'
     | '/api/v1/jobs/solve'
     | '/api/v1/lms-connection/validate'
     | '/api/v1/jobs/'
     | '/api/v1/lms-connection/'
+    | '/api/v1/notifications/'
     | '/api/v1/subjects/'
     | '/api/v1/drafts/$draftId/review'
     | '/api/v1/jobs/$jobId/questions'
     | '/api/v1/jobs/$jobId/resume'
+    | '/api/v1/notifications/$notificationId/read'
     | '/api/v1/drafts/$draftId/'
     | '/api/v1/jobs/$jobId/'
     | '/api/v1/subjects/refresh/'
@@ -314,10 +352,12 @@ export interface RootRouteChildren {
   ApiV1LmsConnectionValidateRoute: typeof ApiV1LmsConnectionValidateRoute
   ApiV1JobsIndexRoute: typeof ApiV1JobsIndexRoute
   ApiV1LmsConnectionIndexRoute: typeof ApiV1LmsConnectionIndexRoute
+  ApiV1NotificationsIndexRoute: typeof ApiV1NotificationsIndexRoute
   ApiV1SubjectsIndexRoute: typeof ApiV1SubjectsIndexRoute
   ApiV1DraftsDraftIdReviewRoute: typeof ApiV1DraftsDraftIdReviewRoute
   ApiV1JobsJobIdQuestionsRoute: typeof ApiV1JobsJobIdQuestionsRoute
   ApiV1JobsJobIdResumeRoute: typeof ApiV1JobsJobIdResumeRoute
+  ApiV1NotificationsNotificationIdReadRoute: typeof ApiV1NotificationsNotificationIdReadRoute
   ApiV1DraftsDraftIdIndexRoute: typeof ApiV1DraftsDraftIdIndexRoute
   ApiV1JobsJobIdIndexRoute: typeof ApiV1JobsJobIdIndexRoute
   ApiV1SubjectsRefreshIndexRoute: typeof ApiV1SubjectsRefreshIndexRoute
@@ -367,6 +407,13 @@ declare module '@tanstack/react-router' {
       path: '/jobs/$jobId'
       fullPath: '/jobs/$jobId'
       preLoaderRoute: typeof ProtectedJobsJobIdRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
+    '/_protected/notifications/': {
+      id: '/_protected/notifications/'
+      path: '/notifications'
+      fullPath: '/notifications/'
+      preLoaderRoute: typeof ProtectedNotificationsIndexRouteImport
       parentRoute: typeof ProtectedRoute
     }
     '/_protected/ops/': {
@@ -425,6 +472,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1LmsConnectionValidateRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/notifications/': {
+      id: '/api/v1/notifications/'
+      path: '/api/v1/notifications'
+      fullPath: '/api/v1/notifications/'
+      preLoaderRoute: typeof ApiV1NotificationsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/subjects/': {
       id: '/api/v1/subjects/'
       path: '/api/v1/subjects'
@@ -467,6 +521,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1JobsJobIdResumeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/notifications/$notificationId/read': {
+      id: '/api/v1/notifications/$notificationId/read'
+      path: '/api/v1/notifications/$notificationId/read'
+      fullPath: '/api/v1/notifications/$notificationId/read'
+      preLoaderRoute: typeof ApiV1NotificationsNotificationIdReadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/subjects/refresh/': {
       id: '/api/v1/subjects/refresh/'
       path: '/api/v1/subjects/refresh'
@@ -495,6 +556,7 @@ interface ProtectedRouteChildren {
   ProtectedDashboardRoute: typeof ProtectedDashboardRoute
   ProtectedJobsJobIdRoute: typeof ProtectedJobsJobIdRoute
   ProtectedJobsIndexRoute: typeof ProtectedJobsIndexRoute
+  ProtectedNotificationsIndexRoute: typeof ProtectedNotificationsIndexRoute
   ProtectedOpsIndexRoute: typeof ProtectedOpsIndexRoute
 }
 
@@ -502,6 +564,7 @@ const ProtectedRouteChildren: ProtectedRouteChildren = {
   ProtectedDashboardRoute: ProtectedDashboardRoute,
   ProtectedJobsJobIdRoute: ProtectedJobsJobIdRoute,
   ProtectedJobsIndexRoute: ProtectedJobsIndexRoute,
+  ProtectedNotificationsIndexRoute: ProtectedNotificationsIndexRoute,
   ProtectedOpsIndexRoute: ProtectedOpsIndexRoute,
 }
 
@@ -520,10 +583,13 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1LmsConnectionValidateRoute: ApiV1LmsConnectionValidateRoute,
   ApiV1JobsIndexRoute: ApiV1JobsIndexRoute,
   ApiV1LmsConnectionIndexRoute: ApiV1LmsConnectionIndexRoute,
+  ApiV1NotificationsIndexRoute: ApiV1NotificationsIndexRoute,
   ApiV1SubjectsIndexRoute: ApiV1SubjectsIndexRoute,
   ApiV1DraftsDraftIdReviewRoute: ApiV1DraftsDraftIdReviewRoute,
   ApiV1JobsJobIdQuestionsRoute: ApiV1JobsJobIdQuestionsRoute,
   ApiV1JobsJobIdResumeRoute: ApiV1JobsJobIdResumeRoute,
+  ApiV1NotificationsNotificationIdReadRoute:
+    ApiV1NotificationsNotificationIdReadRoute,
   ApiV1DraftsDraftIdIndexRoute: ApiV1DraftsDraftIdIndexRoute,
   ApiV1JobsJobIdIndexRoute: ApiV1JobsJobIdIndexRoute,
   ApiV1SubjectsRefreshIndexRoute: ApiV1SubjectsRefreshIndexRoute,

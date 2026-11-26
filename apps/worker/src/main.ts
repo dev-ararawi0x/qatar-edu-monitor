@@ -1,5 +1,5 @@
-import { ProcessSolveJob } from '@hallili/application'
-import { createDatabase, DrizzleLmsCredentialRepository, DrizzleSolveJobProcessingRepository, PostgresJobQueue, PostgresLmsAccountLease, PostgresLmsRateLimiter } from '@hallili/db'
+import { ProcessSolveJob, RecordJobNotification } from '@hallili/application'
+import { createDatabase, DrizzleLmsCredentialRepository, DrizzleSolveJobProcessingRepository, DrizzleNotificationRepository, PostgresJobQueue, PostgresLmsAccountLease, PostgresLmsRateLimiter } from '@hallili/db'
 import { AesGcmCredentialCipher, FakeAiDraftGenerator, FakeLmsAdapter, OpenAiCompatibleDraftGenerator, RetryingAiDraftGenerator } from '@hallili/integrations'
 import { createSecretSafeLogger, loadLocalEnv, parseWorkerEnv } from '@hallili/integrations/runtime'
 import { WorkerRuntime } from './runtime/worker-runtime'
@@ -12,6 +12,7 @@ async function main() {
   const database = createDatabase(env.DATABASE_URL)
   const queue = new PostgresJobQueue(database.db)
   const processingRepository = new DrizzleSolveJobProcessingRepository(database.db)
+  const notifications = new RecordJobNotification(new DrizzleNotificationRepository(database.db), { now: () => new Date() })
   const fakeAi = new FakeAiDraftGenerator()
   const ai = env.AI_PROVIDER === 'openai-compatible'
     ? new RetryingAiDraftGenerator(
@@ -53,6 +54,13 @@ async function main() {
       const outcome = await processor.execute(job)
       metrics.increment(`jobs_${outcome}`)
       await metrics.flush(workerId)
+      if (outcome !== 'requeued') {
+        try {
+          await notifications.execute({ userId: job.userId, jobId: job.id, outcome })
+        } catch (error) {
+          logger.warn('worker_notification_delivery_failed', { workerId, jobId: job.id, errorName: error instanceof Error ? error.name : 'UnknownError' })
+        }
+      }
       logger.info('worker_job_finished_unit', { workerId, jobId: job.id, outcome })
     },
   })

@@ -43,6 +43,13 @@
       "when": 1795731103086,
       "tag": "0005_drafts",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1795732324990,
+      "tag": "0006_notifications",
+      "breakpoints": true
     }
   ]
 }

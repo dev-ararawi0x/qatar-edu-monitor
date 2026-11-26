@@ -143,10 +143,10 @@ A task is done when its code and docs are reviewed; typecheck/lint/tests pass; a
 
 | ID | Status | Priority | Task | Depends on | Definition of Done |
 |---|---|---|---|---|---|
-| H-100 | TODO | P2 | Implement BYOK credential lifecycle | H-004,H-072 | Encrypted scoped keys, rotation/revoke, no browser/log leakage |
-| H-101 | TODO | P2 | Implement in-app notifications | H-060,H-075 | Notification delivery does not mutate job state |
-| H-102 | TODO | P2/GATE | Re-evaluate final-action requirement | H-002,H-003,H-090 | Separate written authorization, security review, Web-only capability, and tests before any implementation |
-| H-103 | TODO | P2 | Design v0.3 textbook context pipeline | H-090 | Uses pre-indexed uploaded materials as PRD specifies; no LMS lesson scraping |
+| H-100 | BLOCKED | P2 | Implement BYOK credential lifecycle | H-004,H-072 | Encrypted scoped keys, rotation/revoke, no browser/log leakage |
+| H-101 | DONE | P2 | Implement in-app notifications | H-060,H-075 | Notification delivery does not mutate job state |
+| H-102 | BLOCKED | P2/GATE | Re-evaluate final-action requirement | H-002,H-003,H-090 | Separate written authorization, security review, Web-only capability, and tests before any implementation |
+| H-103 | DONE | P2 | Design v0.3 textbook context pipeline | H-090 | Uses pre-indexed uploaded materials as PRD specifies; no LMS lesson scraping |
 
 ## Suggested first coding milestone
 

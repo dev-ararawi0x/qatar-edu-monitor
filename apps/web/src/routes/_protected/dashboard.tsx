@@ -64,7 +64,7 @@ function DashboardPage() {
           <h1 className="mt-2 text-3xl font-bold text-slate-950">Welcome, {user.name}</h1>
           <p className="mt-3 max-w-2xl text-slate-600">Fixture-backed subjects and assessments are shown here. Live LMS access remains disabled until the documented authorization gates pass.</p>
         </div>
-        <Link to="/jobs" className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Jobs</Link>
+        <div className="flex gap-2"><Link to="/jobs" className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Jobs</Link><Link to="/notifications" className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Notifications</Link></div>
         <button className="rounded-lg bg-sky-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" disabled={refreshSubjects.isPending} onClick={() => refreshSubjects.mutate()}>
           {refreshSubjects.isPending ? 'Refreshing…' : 'Refresh subjects'}
         </button>
