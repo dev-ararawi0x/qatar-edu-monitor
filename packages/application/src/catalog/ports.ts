@@ -20,4 +20,12 @@ export interface CatalogRepositoryPort {
     timedQuizStatus: TimedQuizStatus
     syncedAt: Date
   }>): Promise<AssessmentSnapshot[]>
+  upsertAttempts(userId: string, items: Array<{
+    assessmentId: string
+    lmsQuizId: string
+    lmsResultsId: string
+    timedQuizStatus: TimedQuizStatus
+    sourceStatus: string | null
+    seenAt: Date
+  }>): Promise<void>
 }

@@ -1,4 +1,4 @@
-import type { EncryptedCredentialMaterial, LmsConnectionSnapshot, LmsConnectionStatus } from '@hallili/domain'
+import type { EncryptedCredentialMaterial, LmsConnectionSnapshot, LmsConnectionStatus, NormalizedQuestion } from '@hallili/domain'
 
 export interface CredentialCipherPort {
   encrypt(plaintext: string, aad: string): Promise<EncryptedCredentialMaterial> | EncryptedCredentialMaterial
@@ -54,4 +54,5 @@ export interface LmsReadPort {
   validateSession(credential: string): Promise<LmsValidationResult>
   listSubjects(credential: string): Promise<LmsSubjectOutput[]>
   listAssessments(credential: string, subjectExternalId: string): Promise<LmsAssessmentOutput[]>
+  fetchQuestionManifest?(credential: string, quizId: string, resultsId: string): Promise<NormalizedQuestion[]>
 }

@@ -35,6 +35,7 @@ function memoryCatalog(): CatalogRepositoryPort & { subjects: SubjectSnapshot[];
       }
       return state.assessments.filter((item) => item.subjectId === subjectId)
     },
+    async upsertAttempts() { return undefined },
   }
 }
 const connectionRepo = { findByUserId: async () => ({ id: 'connection-1', userId: 'user-1', status: 'valid' as const, credentialExpiresAt: null, lastValidatedAt: null, lastRotatedAt: null, revokedAt: null, encryptedCredential: { ciphertext: new Uint8Array([1]), nonce: new Uint8Array(12), authTag: new Uint8Array(16), keyVersion: 1 } }), save: async () => { throw new Error('unused') }, markValidated: async () => undefined, revoke: async () => undefined }

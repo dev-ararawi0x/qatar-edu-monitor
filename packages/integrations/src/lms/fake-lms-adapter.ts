@@ -24,6 +24,14 @@ export class FakeLmsAdapter implements LmsReadPort {
     return normalizeAssessmentsHtml(assessmentsFixtureHtml)
   }
 
+  async fetchQuestionManifest(_credential: string, _quizId: string, _resultsId: string) {
+    this.assertReadable()
+    return [
+      { externalQuestionId: 'question-1', fingerprint: null, type: 'single_choice' as const, prompt: 'What is 2 + 2?', options: [{ id: 'a', label: '3' }, { id: 'b', label: '4' }] },
+      { externalQuestionId: 'question-2', fingerprint: null, type: 'text' as const, prompt: 'Explain photosynthesis briefly.', options: [] },
+    ]
+  }
+
   private assertReadable() {
     if (this.mode === 'success') return
     if (this.mode === 'parser_mismatch') throw new Error('PARSER_MISMATCH')

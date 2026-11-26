@@ -86,13 +86,13 @@ A task is done when its code and docs are reviewed; typecheck/lint/tests pass; a
 
 | ID | Status | Priority | Task | Depends on | Definition of Done |
 |---|---|---|---|---|---|
-| H-050 | TODO | P0 | Implement quota bucket/ledger schema | H-018,H-006 | Unique/idempotency and non-negative constraints migrate successfully |
-| H-051 | TODO | P0 | Implement transactional quota reservation/consume/release | H-050,H-014 | Concurrent reservation tests cannot oversubscribe |
-| H-052 | TODO | P0 | Implement SolveJob domain state machine | H-014 | Full transition table and typed pause reasons tested |
-| H-053 | TODO | P0 | Add attempts/jobs/question schema and indexes | H-018,H-005,H-052 | Active tuple partial unique index and queue indexes are tested |
-| H-054 | TODO | P0 | Implement CreateSolveJobs use case | H-051,H-052,H-053,H-025 | Ownership, timed gate, idempotency, atomic reservation tested |
-| H-055 | TODO | P0 | Implement job create/list/read API contracts/routes | H-015,H-024,H-054 | POST returns 202 fast; no AI work in route; owner isolation passes |
-| H-056 | TODO | P0 | Implement PostgreSQL JobQueuePort claim adapter | H-053 | Concurrent workers do not claim same job; short transaction only |
+| H-050 | DONE | P0 | Implement quota bucket/ledger schema | H-018,H-006 | Unique/idempotency and non-negative constraints migrate successfully |
+| H-051 | DONE | P0 | Implement transactional quota reservation/consume/release | H-050,H-014 | Concurrent reservation tests cannot oversubscribe |
+| H-052 | DONE | P0 | Implement SolveJob domain state machine | H-014 | Full transition table and typed pause reasons tested |
+| H-053 | DONE | P0 | Add attempts/jobs/question schema and indexes | H-018,H-005,H-052 | Active tuple partial unique index and queue indexes are tested |
+| H-054 | DONE | P0 | Implement CreateSolveJobs use case | H-051,H-052,H-053,H-025 | Ownership, timed gate, idempotency, atomic reservation tested |
+| H-055 | DONE | P0 | Implement job create/list/read API contracts/routes | H-015,H-024,H-054 | POST returns 202 fast; no AI work in route; owner isolation passes |
+| H-056 | DONE | P0 | Implement PostgreSQL JobQueuePort claim adapter | H-053 | Concurrent workers do not claim same job; short transaction only |
 
 ## Phase 6 — Worker reliability
 

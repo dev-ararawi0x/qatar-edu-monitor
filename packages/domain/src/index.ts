@@ -19,3 +19,5 @@ export function assertNever(value: never): never {
 
 export * from './lms'
 export * from './catalog'
+export * from './solving'
+export * from './questions'

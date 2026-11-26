@@ -1,5 +1,5 @@
-import { GetLmsConnection, ListAssessments, ListSubjects, RefreshAssessments, RefreshSubjects, RevokeLmsConnection, SaveLmsCredential, ValidateLmsConnection } from '@hallili/application'
-import { createDatabase, DrizzleCatalogRepository, DrizzleLmsCredentialRepository } from '@hallili/db'
+import { CreateSolveJobs, GetLmsConnection, GetSolveJob, ListAssessments, ListSolveJobs, ListSubjects, RefreshAssessments, RefreshSubjects, RevokeLmsConnection, SaveLmsCredential, ValidateLmsConnection } from '@hallili/application'
+import { createDatabase, DrizzleCatalogRepository, DrizzleLmsCredentialRepository, DrizzleSolveJobRepository } from '@hallili/db'
 import { AesGcmCredentialCipher, FakeLmsAdapter } from '@hallili/integrations'
 
 function requiredEnv(name: string) {
@@ -11,6 +11,7 @@ function requiredEnv(name: string) {
 const database = createDatabase(requiredEnv('DATABASE_URL'))
 const repository = new DrizzleLmsCredentialRepository(database.db)
 const catalogRepository = new DrizzleCatalogRepository(database.db)
+const solveJobRepository = new DrizzleSolveJobRepository(database.db)
 const cipher = new AesGcmCredentialCipher(requiredEnv('ENCRYPTION_KEY'))
 const fakeLms = new FakeLmsAdapter(process.env.FAKE_LMS_MODE === 'expired' ? 'expired' : 'success')
 const clock = { now: () => new Date() }
@@ -28,4 +29,10 @@ export const catalogUseCases = {
   refreshSubjects: new RefreshSubjects(catalogRepository, repository, cipher, fakeLms, clock),
   listAssessments: new ListAssessments(catalogRepository),
   refreshAssessments: new RefreshAssessments(catalogRepository, repository, cipher, fakeLms, clock),
+}
+
+export const solvingUseCases = {
+  create: new CreateSolveJobs(solveJobRepository, clock),
+  list: new ListSolveJobs(solveJobRepository),
+  get: new GetSolveJob(solveJobRepository),
 }

@@ -3,6 +3,7 @@ import type { AssessmentSnapshot, SubjectSnapshot, TimedQuizStatus } from '@hall
 import { and, asc, eq, isNotNull, sql } from 'drizzle-orm'
 import type { HalliliDatabase } from '../client'
 import { assessments, subjects } from '../schema/catalog'
+import { assessmentAttempts } from '../schema/solving'
 import { lmsConnections } from '../schema/lms-connections'
 
 type SubjectRow = typeof subjects.$inferSelect
@@ -48,6 +49,11 @@ export class DrizzleCatalogRepository implements CatalogRepositoryPort {
     const rows = await this.db.insert(assessments).values(items.map((item) => ({ subjectId, externalAssessmentId: item.externalId, title: item.title, assessmentType: item.type, dueAt: item.dueAt, sourceStatus: item.sourceStatus, timedQuizStatus: item.timedQuizStatus, lastSyncedAt: item.syncedAt, updatedAt: item.syncedAt, safeMetadata: {} }))).onConflictDoUpdate({ target: [assessments.subjectId, assessments.externalAssessmentId], set: { title: sqlExcluded('title'), assessmentType: sqlExcluded('assessment_type'), dueAt: sqlExcluded('due_at'), sourceStatus: sqlExcluded('source_status'), timedQuizStatus: sqlExcluded('timed_quiz_status'), lastSyncedAt: sqlExcluded('last_synced_at'), updatedAt: sqlExcluded('updated_at') } }).returning()
     return rows.map(assessment)
   }
+  async upsertAttempts(userId: string, items: Array<{ assessmentId: string; lmsQuizId: string; lmsResultsId: string; timedQuizStatus: TimedQuizStatus; sourceStatus: string | null; seenAt: Date }>) {
+    if (items.length === 0) return
+    await this.db.insert(assessmentAttempts).values(items.map((item) => ({ userId, assessmentId: item.assessmentId, lmsQuizId: item.lmsQuizId, lmsResultsId: item.lmsResultsId, timedQuizStatus: item.timedQuizStatus, sourceStatus: item.sourceStatus, lastSeenAt: item.seenAt, updatedAt: item.seenAt }))).onConflictDoUpdate({ target: [assessmentAttempts.userId, assessmentAttempts.lmsQuizId, assessmentAttempts.lmsResultsId], set: { assessmentId: sqlExcluded('assessment_id'), timedQuizStatus: sqlExcluded('timed_quiz_status'), sourceStatus: sqlExcluded('source_status'), lastSeenAt: sqlExcluded('last_seen_at'), updatedAt: sqlExcluded('updated_at') } })
+  }
+
 }
 
 function sqlExcluded(column: string) {

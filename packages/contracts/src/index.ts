@@ -16,3 +16,4 @@ export const uuidSchema = z.uuid()
 
 export * from './lms'
 export * from './catalog'
+export * from './jobs'

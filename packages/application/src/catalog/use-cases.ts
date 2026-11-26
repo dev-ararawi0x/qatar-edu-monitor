@@ -69,6 +69,11 @@ export class RefreshAssessments {
     try {
       const source = await this.lms.listAssessments(credential, subject.externalId)
       const items = await this.catalog.upsertAssessments(input.subjectId, source.map((item) => ({ externalId: item.externalId, title: item.title, type: item.type, dueAt: item.dueAt, sourceStatus: item.sourceStatus, timedQuizStatus: item.timedQuizStatus, syncedAt: now })))
+      const byExternalId = new Map(items.map((item) => [item.externalId, item.id]))
+      await this.catalog.upsertAttempts(actor.userId, source.flatMap((item) => {
+        const assessmentId = byExternalId.get(item.externalId)
+        return assessmentId && item.quizId && item.resultsId ? [{ assessmentId, lmsQuizId: item.quizId, lmsResultsId: item.resultsId, timedQuizStatus: item.timedQuizStatus, sourceStatus: item.sourceStatus, seenAt: now }] : []
+      }))
       return { refreshedAt: now.toISOString(), assessmentCount: items.length, items: items.map(assessmentDto) }
     } catch (error) { mapParserError(error) }
   }

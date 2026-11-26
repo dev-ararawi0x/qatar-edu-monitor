@@ -1,3 +1,7 @@
 export * from './auth'
 export * from './lms-connections'
 export * from './catalog'
+export * from './solving'
+export * from './usage'
+export * from './coordination'
+export * from './drafts'
