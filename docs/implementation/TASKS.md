@@ -123,10 +123,10 @@ A task is done when its code and docs are reviewed; typecheck/lint/tests pass; a
 
 | ID | Status | Priority | Task | Depends on | Definition of Done |
 |---|---|---|---|---|---|
-| H-080 | TODO | P0/GATE | Enable authorized LMS read adapter | H-001,H-002,H-035,H-036 | Approval evidence recorded; only approved read operations enabled |
-| H-081 | TODO | P0/GATE | Validate cookie rotation and session behavior | H-005,H-080,H-062 | Approved test environment demonstrates safe persistence/serialization |
-| H-082 | TODO | P0/GATE | Enable remote LMS draft-save adapter, only if approved | H-004,H-080,H-081,H-066 | Written permission, semantic contract, idempotency/reconciliation tests; default remains off otherwise |
-| H-083 | TODO | P0/GATE | Validate extraction reliability on approved fixture corpus | H-080,H-036 | Measured result with denominator/version; target ≥98% or release is blocked/limited |
+| H-080 | BLOCKED | P0/GATE | Enable authorized LMS read adapter | H-001,H-002,H-035,H-036 | Approval evidence recorded; only approved read operations enabled |
+| H-081 | BLOCKED | P0/GATE | Validate cookie rotation and session behavior | H-005,H-080,H-062 | Approved test environment demonstrates safe persistence/serialization |
+| H-082 | BLOCKED | P0/GATE | Enable remote LMS draft-save adapter, only if approved | H-004,H-080,H-081,H-066 | Written permission, semantic contract, idempotency/reconciliation tests; default remains off otherwise |
+| H-083 | BLOCKED | P0/GATE | Validate extraction reliability on approved fixture corpus | H-080,H-036 | Measured result with denominator/version; target ≥98% or release is blocked/limited |
 
 ## Phase 9 — Release hardening
 

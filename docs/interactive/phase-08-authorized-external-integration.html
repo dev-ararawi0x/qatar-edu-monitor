@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Phase 8 — Authorized external integration gate — Hallili Interactive Docs</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 antialiased">
+  <div class="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,.18),_transparent_34rem),radial-gradient(circle_at_bottom_right,_rgba(168,85,247,.13),_transparent_30rem)]">
+    <header class="sticky top-0 z-20 border-b border-white/10 bg-slate-950/85 backdrop-blur">
+      <div class="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
+        <a href="./index.html" class="text-lg font-bold tracking-tight text-white">Hallili <span class="text-sky-300">Interactive Docs</span></a>
+        <nav class="flex gap-3 text-sm">
+          <a class="rounded-full px-3 py-1 text-slate-300 hover:bg-white/10 hover:text-white" href="./index.html">Phases</a>
+          <a class="rounded-full px-3 py-1 text-slate-300 hover:bg-white/10 hover:text-white" href="./unrecorded-decisions.html">Unrecorded decisions</a>
+        </nav>
+      </div>
+    </header>
+
+<div class="mb-8"><p class="text-sm font-semibold uppercase tracking-[.25em] text-amber-300">Phase 8</p><h1 class="mt-3 text-4xl font-black tracking-tight text-white">Authorized external integration — blocked by design</h1><p class="mt-4 max-w-3xl text-lg leading-8 text-slate-300">No live LMS read or write adapter was enabled in this phase. OD-01 through OD-07 and the live identifier/session/reliability evidence required by OD-08/09/12/13/25 remain unresolved, so the only safe completion is to keep the external boundary fail-closed.</p></div>
+<section class="rounded-2xl border border-amber-400/30 bg-amber-400/10 px-5 py-5"><h2 class="text-xl font-semibold text-white">Gate status</h2><div class="mt-4 grid gap-3 md:grid-cols-4 text-sm"><div class="rounded-xl bg-slate-950/40 p-4"><b>H-080</b><br/>BLOCKED — missing written LMS/school authorization and approved read scope.</div><div class="rounded-xl bg-slate-950/40 p-4"><b>H-081</b><br/>BLOCKED — no approved test environment evidence for cookie rotation/session concurrency.</div><div class="rounded-xl bg-slate-950/40 p-4"><b>H-082</b><br/>BLOCKED — remote draft-save permission, exact semantics, idempotency, and reconciliation evidence are absent.</div><div class="rounded-xl bg-slate-950/40 p-4"><b>H-083</b><br/>BLOCKED — no approved representative fixture corpus or measured denominator/version exists.</div></div><p class="mt-5 text-sm leading-7 text-slate-200">The system continues to use sanitized fake fixtures. No arbitrary URL fetching, WAF bypass, final action, or inferred LMS write permission was added. This is the intended implementation outcome until stakeholders provide evidence and explicitly close the gates.</p></section>
+</main>
+  </div>
+  <script>
+    document.querySelectorAll('[data-toggle]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const target = document.getElementById(button.dataset.toggle)
+        if (!target) return
+        target.classList.toggle('hidden')
+        button.querySelector('[data-chevron]')?.classList.toggle('rotate-180')
+      })
+    })
+  </script>
+</body>
+</html>
