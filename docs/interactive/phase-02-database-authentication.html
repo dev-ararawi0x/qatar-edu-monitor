@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Phase 2 — Database and authentication — Hallili Interactive Docs</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 antialiased">
+  <div class="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,.18),_transparent_34rem),radial-gradient(circle_at_bottom_right,_rgba(168,85,247,.13),_transparent_30rem)]">
+    <header class="sticky top-0 z-20 border-b border-white/10 bg-slate-950/85 backdrop-blur">
+      <div class="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
+        <a href="./index.html" class="text-lg font-bold tracking-tight text-white">Hallili <span class="text-sky-300">Interactive Docs</span></a>
+        <nav class="flex gap-3 text-sm">
+          <a class="rounded-full px-3 py-1 text-slate-300 hover:bg-white/10 hover:text-white" href="./index.html">Phases</a>
+          <a class="rounded-full px-3 py-1 text-slate-300 hover:bg-white/10 hover:text-white" href="./unrecorded-decisions.html">Unrecorded decisions</a>
+        </nav>
+      </div>
+    </header>
+
+<div class="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+  <div class="max-w-3xl"><p class="text-sm font-semibold uppercase tracking-[.25em] text-sky-300">Phase 2</p><h1 class="mt-3 text-4xl font-black tracking-tight text-white">Database schema and authentication</h1><p class="mt-4 text-lg leading-8 text-slate-300">This phase established PostgreSQL persistence, Better Auth integration, a Microsoft sign-in boundary that remains fail-closed pending tenant policy, actor resolution, and safe API error semantics.</p></div>
+  <div class="rounded-2xl border border-emerald-400/30 bg-emerald-400/10 px-5 py-4"><div class="text-sm font-semibold text-emerald-300">Local implementation</div><div class="text-2xl font-bold text-white">Complete</div><div class="text-xs text-amber-300">Microsoft tenant approval remains gated</div></div>
+</div>
+<section class="mb-5 rounded-2xl border border-white/10 bg-white/[.055]"><button data-toggle="p2-files" class="flex w-full items-center justify-between px-5 py-4 text-left"><span class="text-lg font-semibold">Files added or changed</span><span data-chevron>⌄</span></button><div id="p2-files" class="border-t border-white/10 px-5 py-5"><div class="grid gap-4 lg:grid-cols-2"><pre class="rounded-xl bg-slate-900/80 p-4 font-mono text-sm leading-7 text-slate-300">apps/web/src/
+├── lib/auth-client.ts
+├── routes/api/auth/$.ts
+├── routes/login.tsx
+├── routes/_protected.tsx
+├── routes/_protected/dashboard.tsx
+└── server/
+    ├── actor.ts
+    ├── auth-functions.ts
+    ├── auth.ts
+    └── http.ts
+packages/db/src/
+├── client.ts
+├── migrate.ts
+├── migrations/0000_initial-auth.sql
+└── schema/
+    ├── auth.ts
+    └── index.ts</pre><div class="space-y-3 text-sm leading-6 text-slate-300"><p><b class="text-white">auth.ts:</b> Better Auth configuration using the Drizzle adapter, a server-side secret, and Microsoft only when explicitly enabled.</p><p><b class="text-white">schema/auth.ts:</b> generated through <code>auth@1.7.25 generate</code>, then timestamp columns were bound to <code>timestamptz</code> to satisfy the database design.</p><p><b class="text-white">migrate.ts:</b> applies reviewed Drizzle SQL migrations using <code>DATABASE_URL</code>.</p><p><b class="text-white">actor.ts:</b> converts a Better Auth session into minimal <code>ActorContext</code>; tests inject a fake lookup without booting auth.</p><p><b class="text-white">http.ts:</b> safe JSON/error envelope, request IDs, body limits, and mutation origin checking.</p><p><b class="text-white">_protected routes:</b> prove server-side session protection and redirect signed-out users to login.</p></div></div></div></section>
+<section class="mb-5 rounded-2xl border border-white/10 bg-white/[.055]"><button data-toggle="p2-flow" class="flex w-full items-center justify-between px-5 py-4 text-left"><span class="text-lg font-semibold">Runtime communication</span><span data-chevron>⌄</span></button><div id="p2-flow" class="border-t border-white/10 px-5 py-5"><div class="grid gap-3 md:grid-cols-5 text-center text-sm"><div class="rounded-xl bg-sky-400/10 p-4">Browser<div class="text-xs text-slate-400">login/protected page</div></div><div class="rounded-xl bg-sky-400/20 p-4">TanStack route<div class="text-xs text-slate-400">auth catch-all or guard</div></div><div class="rounded-xl bg-white/10 p-4">Better Auth<div class="text-xs text-slate-400">session lookup</div></div><div class="rounded-xl bg-white/10 p-4">ActorContext<div class="text-xs text-slate-400">minimal user id</div></div><div class="rounded-xl bg-purple-400/10 p-4">PostgreSQL<div class="text-xs text-slate-400">auth tables</div></div></div><p class="mt-5 text-sm leading-7 text-slate-300">Route handlers and loaders do not query the database directly. Application use cases receive only the actor user ID. The Worker does not use browser sessions.</p></div></section>
+<section class="rounded-2xl border border-white/10 bg-white/[.055]"><button data-toggle="p2-verify" class="flex w-full items-center justify-between px-5 py-4 text-left"><span class="text-lg font-semibold">Verification and gates</span><span data-chevron>⌄</span></button><div id="p2-verify" class="border-t border-white/10 px-5 py-5"><ul class="list-disc space-y-2 pl-5 text-sm leading-7 text-slate-300"><li>Clean local PostgreSQL migration created <code>user</code>, <code>session</code>, <code>account</code>, and <code>verification</code> with timestamptz columns.</li><li><code>GET /api/auth/ok</code> returned <code>{"ok":true}</code> in the TanStack Start smoke test.</li><li>Unit tests cover signed-in/signed-out actor resolution, safe error envelopes, request IDs, and cross-user ownership behavior.</li><li><code>H-022</code> remains <b class="text-amber-300">BLOCKED</b>: real Microsoft enablement requires approved tenant/account evidence. <code>MICROSOFT_SIGNIN_ENABLED=false</code> is the default.</li></ul></div></section>
+</main>
+  </div>
+  <script>
+    document.querySelectorAll('[data-toggle]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const target = document.getElementById(button.dataset.toggle)
+        if (!target) return
+        target.classList.toggle('hidden')
+        button.querySelector('[data-chevron]')?.classList.toggle('rotate-180')
+      })
+    })
+  </script>
+</body>
+</html>

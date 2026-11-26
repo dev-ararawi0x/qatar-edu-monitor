@@ -8,6 +8,8 @@ const baseEnvSchema = z.object({
   BETTER_AUTH_SECRET: z.string().min(1).optional(),
   BETTER_AUTH_URL: z.url().optional(),
   WEB_ORIGIN: z.url().optional(),
+  MICROSOFT_SIGNIN_ENABLED: z.enum(['true', 'false']).default('false'),
+  MICROSOFT_ALLOW_COMMON_TENANT: z.enum(['true', 'false']).default('false'),
   LMS_INTEGRATION_ENABLED: z.enum(['true', 'false']).default('false'),
   LMS_REMOTE_DRAFTS_ENABLED: z.enum(['true', 'false']).default('false'),
   AI_PROVIDER: z.enum(['fake']).default('fake'),

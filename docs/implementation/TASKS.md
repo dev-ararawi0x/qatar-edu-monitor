@@ -52,12 +52,12 @@ A task is done when its code and docs are reviewed; typecheck/lint/tests pass; a
 
 | ID | Status | Priority | Task | Depends on | Definition of Done |
 |---|---|---|---|---|---|
-| H-020 | TODO | P0 | Pin compatible TanStack Start and Better Auth versions | H-012 | Versions recorded; integration smoke test passes |
-| H-021 | TODO | P0 | Generate Better Auth schema and migrations | H-018,H-020 | Auth tables match pinned adapter; clean DB migration passes |
-| H-022 | TODO | P0 | Implement Better Auth Microsoft configuration | H-020,H-021,H-006 | Only approved account types/tenant policy accepted |
-| H-023 | TODO | P0 | Implement server-side ActorContext/session helper | H-020,H-022 | Protected route tests cover signed-out and signed-in cases |
-| H-024 | TODO | P1 | Implement common API error envelope/request ID | H-012,H-015 | Stable safe error codes; no raw exception returned |
-| H-025 | TODO | P1 | Add ownership-scope test helpers | H-023 | Tests prove every user-owned use case scopes by actor ID |
+| H-020 | DONE | P0 | Pin compatible TanStack Start and Better Auth versions | H-012 | Versions recorded; integration smoke test passes |
+| H-021 | DONE | P0 | Generate Better Auth schema and migrations | H-018,H-020 | Auth tables match pinned adapter; clean DB migration passes |
+| H-022 | BLOCKED | P0 | Implement Better Auth Microsoft configuration | H-020,H-021,H-006 | Only approved account types/tenant policy accepted |
+| H-023 | DONE | P0 | Implement server-side ActorContext/session helper | H-020,H-022 | Protected route tests cover signed-out and signed-in cases |
+| H-024 | DONE | P1 | Implement common API error envelope/request ID | H-012,H-015 | Stable safe error codes; no raw exception returned |
+| H-025 | DONE | P1 | Add ownership-scope test helpers | H-023 | Tests prove every user-owned use case scopes by actor ID |
 
 ## Phase 3 — LMS connection security and fake adapter
 

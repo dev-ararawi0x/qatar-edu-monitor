@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { databasePackageBoundary } from '../src/index'
+import { createDatabase } from '../src/index'
 
 describe('database package', () => {
-  it('has a stable package boundary marker during foundation setup', () => {
-    expect(databasePackageBoundary).toBe('@hallili/db')
+  it('creates a lazy PostgreSQL client boundary without connecting during construction', () => {
+    const connection = createDatabase('postgres://hallili:hallili@localhost:5432/hallili')
+    expect(connection.db).toBeDefined()
+    return connection.close()
   })
 })

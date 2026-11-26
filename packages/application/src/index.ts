@@ -36,3 +36,5 @@ export function requireActor(actor: ActorContext | null): ActorContext {
   }
   return actor
 }
+
+export * from './ownership'

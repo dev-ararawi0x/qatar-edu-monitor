@@ -1,1 +1,2 @@
-export const databasePackageBoundary = '@hallili/db'
+export * from './client'
+export * as schema from './schema'
