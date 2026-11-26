@@ -7,7 +7,7 @@
     "dev": "turbo run dev",
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",
-    "lint": "eslint . && node scripts/check-architecture.mjs",
+    "lint": "eslint . && node scripts/check-architecture.mjs && node scripts/security-check.mjs",
     "test": "turbo run test",
     "test:unit": "vitest run tests/unit",
     "format": "prettier --write .",
@@ -15,10 +15,14 @@
     "db:up": "scripts/db-compose.sh up",
     "db:down": "scripts/db-compose.sh down",
     "db:migrate": "pnpm --filter @hallili/db migrate",
-    "check:architecture": "node scripts/check-architecture.mjs"
+    "check:architecture": "node scripts/check-architecture.mjs",
+    "security": "node scripts/security-check.mjs",
+    "benchmark": "tsx scripts/benchmark.ts",
+    "test:e2e": "node scripts/e2e-smoke.mjs"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
+    "@hallili/db": "workspace:*",
     "@types/node": "22.20.5",
     "eslint": "10.15.0",
     "prettier": "3.10.1",

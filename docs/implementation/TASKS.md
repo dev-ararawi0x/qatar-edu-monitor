@@ -132,12 +132,12 @@ A task is done when its code and docs are reviewed; typecheck/lint/tests pass; a
 
 | ID | Status | Priority | Task | Depends on | Definition of Done |
 |---|---|---|---|---|---|
-| H-090 | TODO | P0 | Complete API/DB/Worker/E2E security suite | H-064,H-076,H-077 | Required suites pass; cross-user and Worker capability tests included |
-| H-091 | TODO | P1 | Run performance and reliability benchmarks | H-090,H-083 | p50/p95/p99 and workload profile documented for NFR targets |
-| H-092 | TODO | P1 | Add Web and Worker health/metrics dashboards | H-060,H-063,H-091 | Separate health checks and queue/provider/parser metrics visible |
-| H-093 | TODO | P0 | Verify backups and restore procedure | H-018,H-053,H-075 | Restore to clean instance tested and documented |
-| H-094 | TODO | P0 | Complete retention/account deletion implementation | H-006,H-075,H-093 | Approved data map, delete/anonymize tests, no indefinite content retention by default |
-| H-095 | TODO | P0 | Prepare deployment and rollback runbook | H-090,H-092,H-093 | Web and Worker deploy separately; secrets and DB roles least-privileged |
+| H-090 | DONE | P0 | Complete API/DB/Worker/E2E security suite | H-064,H-076,H-077 | Required suites pass; cross-user and Worker capability tests included |
+| H-091 | BLOCKED | P1 | Run performance and reliability benchmarks | H-090,H-083 | p50/p95/p99 and workload profile documented for NFR targets |
+| H-092 | DONE | P1 | Add Web and Worker health/metrics dashboards | H-060,H-063,H-091 | Separate health checks and queue/provider/parser metrics visible |
+| H-093 | DONE | P0 | Verify backups and restore procedure | H-018,H-053,H-075 | Restore to clean instance tested and documented |
+| H-094 | BLOCKED | P0 | Complete retention/account deletion implementation | H-006,H-075,H-093 | Approved data map, delete/anonymize tests, no indefinite content retention by default |
+| H-095 | DONE | P0 | Prepare deployment and rollback runbook | H-090,H-092,H-093 | Web and Worker deploy separately; secrets and DB roles least-privileged |
 
 ## Phase 10 — Deferred capabilities
 

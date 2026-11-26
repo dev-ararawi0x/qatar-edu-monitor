@@ -1,0 +1,22 @@
+{
+  "profile": "local single PostgreSQL container, Node 22, fake fixture workload, 20 assessments",
+  "measuredAt": "2026-11-26T22:28:12.630Z",
+  "transactionalCreate20JobsMs": 95.84,
+  "queueClaimMs": {
+    "p50": 13.68,
+    "p95": 19.75,
+    "p99": 20.31
+  },
+  "ownerJobReadMs": {
+    "p50": 1.69,
+    "p95": 2.7,
+    "p99": 2.93
+  },
+  "caveat": "Local-container baseline only; production NFR sign-off requires HTTP, provider, deployment-environment, and approved-fixture measurement.",
+  "nfrAssessment": {
+    "enqueueHttp300ms": "not-proven: measured transactional repository create, not HTTP request-to-202",
+    "statusRead300ms": "not-proven: measured owner repository read, not authenticated HTTP response",
+    "tenQuestionJob45s": "blocked: requires approved provider/workload profile and representative fixtures",
+    "extraction98Percent": "blocked: H-083 approved fixture corpus is unavailable"
+  }
+}

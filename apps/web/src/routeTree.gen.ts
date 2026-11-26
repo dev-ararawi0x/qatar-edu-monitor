@@ -15,7 +15,10 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as ProtectedDashboardRouteImport } from './routes/_protected/dashboard'
 import { Route as ProtectedJobsIndexRouteImport } from './routes/_protected/jobs/index'
 import { Route as ProtectedJobsJobIdRouteImport } from './routes/_protected/jobs/$jobId'
+import { Route as ProtectedOpsIndexRouteImport } from './routes/_protected/ops/index'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiV1HealthRouteImport } from './routes/api/v1/health'
+import { Route as ApiV1MetricsRouteImport } from './routes/api/v1/metrics'
 import { Route as ApiV1JobsIndexRouteImport } from './routes/api/v1/jobs/index'
 import { Route as ApiV1JobsSolveRouteImport } from './routes/api/v1/jobs/solve'
 import { Route as ApiV1LmsConnectionIndexRouteImport } from './routes/api/v1/lms-connection/index'
@@ -59,9 +62,24 @@ const ProtectedJobsJobIdRoute = ProtectedJobsJobIdRouteImport.update({
   path: '/jobs/$jobId',
   getParentRoute: () => ProtectedRoute,
 } as any)
+const ProtectedOpsIndexRoute = ProtectedOpsIndexRouteImport.update({
+  id: '/ops/',
+  path: '/ops/',
+  getParentRoute: () => ProtectedRoute,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1HealthRoute = ApiV1HealthRouteImport.update({
+  id: '/api/v1/health',
+  path: '/api/v1/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1MetricsRoute = ApiV1MetricsRouteImport.update({
+  id: '/api/v1/metrics',
+  path: '/api/v1/metrics',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1JobsIndexRoute = ApiV1JobsIndexRouteImport.update({
@@ -141,7 +159,10 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof ProtectedDashboardRoute
   '/jobs/$jobId': typeof ProtectedJobsJobIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/v1/health': typeof ApiV1HealthRoute
+  '/api/v1/metrics': typeof ApiV1MetricsRoute
   '/jobs/': typeof ProtectedJobsIndexRoute
+  '/ops/': typeof ProtectedOpsIndexRoute
   '/api/v1/jobs/solve': typeof ApiV1JobsSolveRoute
   '/api/v1/lms-connection/validate': typeof ApiV1LmsConnectionValidateRoute
   '/api/v1/jobs/': typeof ApiV1JobsIndexRoute
@@ -162,7 +183,10 @@ export interface FileRoutesByTo {
   '/dashboard': typeof ProtectedDashboardRoute
   '/jobs/$jobId': typeof ProtectedJobsJobIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/v1/health': typeof ApiV1HealthRoute
+  '/api/v1/metrics': typeof ApiV1MetricsRoute
   '/jobs': typeof ProtectedJobsIndexRoute
+  '/ops': typeof ProtectedOpsIndexRoute
   '/api/v1/jobs/solve': typeof ApiV1JobsSolveRoute
   '/api/v1/lms-connection/validate': typeof ApiV1LmsConnectionValidateRoute
   '/api/v1/jobs': typeof ApiV1JobsIndexRoute
@@ -185,7 +209,10 @@ export interface FileRoutesById {
   '/_protected/dashboard': typeof ProtectedDashboardRoute
   '/_protected/jobs/$jobId': typeof ProtectedJobsJobIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/v1/health': typeof ApiV1HealthRoute
+  '/api/v1/metrics': typeof ApiV1MetricsRoute
   '/_protected/jobs/': typeof ProtectedJobsIndexRoute
+  '/_protected/ops/': typeof ProtectedOpsIndexRoute
   '/api/v1/jobs/solve': typeof ApiV1JobsSolveRoute
   '/api/v1/lms-connection/validate': typeof ApiV1LmsConnectionValidateRoute
   '/api/v1/jobs/': typeof ApiV1JobsIndexRoute
@@ -208,7 +235,10 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/jobs/$jobId'
     | '/api/auth/$'
+    | '/api/v1/health'
+    | '/api/v1/metrics'
     | '/jobs/'
+    | '/ops/'
     | '/api/v1/jobs/solve'
     | '/api/v1/lms-connection/validate'
     | '/api/v1/jobs/'
@@ -229,7 +259,10 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/jobs/$jobId'
     | '/api/auth/$'
+    | '/api/v1/health'
+    | '/api/v1/metrics'
     | '/jobs'
+    | '/ops'
     | '/api/v1/jobs/solve'
     | '/api/v1/lms-connection/validate'
     | '/api/v1/jobs'
@@ -251,7 +284,10 @@ export interface FileRouteTypes {
     | '/_protected/dashboard'
     | '/_protected/jobs/$jobId'
     | '/api/auth/$'
+    | '/api/v1/health'
+    | '/api/v1/metrics'
     | '/_protected/jobs/'
+    | '/_protected/ops/'
     | '/api/v1/jobs/solve'
     | '/api/v1/lms-connection/validate'
     | '/api/v1/jobs/'
@@ -272,6 +308,8 @@ export interface RootRouteChildren {
   ProtectedRoute: typeof ProtectedRouteWithChildren
   LoginRoute: typeof LoginRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiV1HealthRoute: typeof ApiV1HealthRoute
+  ApiV1MetricsRoute: typeof ApiV1MetricsRoute
   ApiV1JobsSolveRoute: typeof ApiV1JobsSolveRoute
   ApiV1LmsConnectionValidateRoute: typeof ApiV1LmsConnectionValidateRoute
   ApiV1JobsIndexRoute: typeof ApiV1JobsIndexRoute
@@ -331,11 +369,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedJobsJobIdRouteImport
       parentRoute: typeof ProtectedRoute
     }
+    '/_protected/ops/': {
+      id: '/_protected/ops/'
+      path: '/ops'
+      fullPath: '/ops/'
+      preLoaderRoute: typeof ProtectedOpsIndexRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
       fullPath: '/api/auth/$'
       preLoaderRoute: typeof ApiAuthSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/health': {
+      id: '/api/v1/health'
+      path: '/api/v1/health'
+      fullPath: '/api/v1/health'
+      preLoaderRoute: typeof ApiV1HealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/metrics': {
+      id: '/api/v1/metrics'
+      path: '/api/v1/metrics'
+      fullPath: '/api/v1/metrics'
+      preLoaderRoute: typeof ApiV1MetricsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/jobs/': {
@@ -436,12 +495,14 @@ interface ProtectedRouteChildren {
   ProtectedDashboardRoute: typeof ProtectedDashboardRoute
   ProtectedJobsJobIdRoute: typeof ProtectedJobsJobIdRoute
   ProtectedJobsIndexRoute: typeof ProtectedJobsIndexRoute
+  ProtectedOpsIndexRoute: typeof ProtectedOpsIndexRoute
 }
 
 const ProtectedRouteChildren: ProtectedRouteChildren = {
   ProtectedDashboardRoute: ProtectedDashboardRoute,
   ProtectedJobsJobIdRoute: ProtectedJobsJobIdRoute,
   ProtectedJobsIndexRoute: ProtectedJobsIndexRoute,
+  ProtectedOpsIndexRoute: ProtectedOpsIndexRoute,
 }
 
 const ProtectedRouteWithChildren = ProtectedRoute._addFileChildren(
@@ -453,6 +514,8 @@ const rootRouteChildren: RootRouteChildren = {
   ProtectedRoute: ProtectedRouteWithChildren,
   LoginRoute: LoginRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiV1HealthRoute: ApiV1HealthRoute,
+  ApiV1MetricsRoute: ApiV1MetricsRoute,
   ApiV1JobsSolveRoute: ApiV1JobsSolveRoute,
   ApiV1LmsConnectionValidateRoute: ApiV1LmsConnectionValidateRoute,
   ApiV1JobsIndexRoute: ApiV1JobsIndexRoute,

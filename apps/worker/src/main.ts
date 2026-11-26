@@ -3,6 +3,7 @@ import { createDatabase, DrizzleLmsCredentialRepository, DrizzleSolveJobProcessi
 import { AesGcmCredentialCipher, FakeAiDraftGenerator, FakeLmsAdapter, OpenAiCompatibleDraftGenerator, RetryingAiDraftGenerator } from '@hallili/integrations'
 import { createSecretSafeLogger, loadLocalEnv, parseWorkerEnv } from '@hallili/integrations/runtime'
 import { WorkerRuntime } from './runtime/worker-runtime'
+import { WorkerMetrics } from './runtime/metrics'
 
 async function main() {
   loadLocalEnv()
@@ -34,6 +35,7 @@ async function main() {
     { uuid: () => crypto.randomUUID() },
   )
   const workerId = `worker-${process.pid}`
+  const metrics = new WorkerMetrics(process.env.WORKER_METRICS_PATH ?? ".worker-metrics.json")
 
   const runtime = new WorkerRuntime({
     workerId,
@@ -42,11 +44,15 @@ async function main() {
     onTick: async () => {
       const now = new Date()
       const recovered = await processingRepository.recoverExpiredLeases(now)
+      if (recovered > 0) metrics.increment('expired_leases_recovered', recovered)
       if (recovered > 0) logger.warn('worker_recovered_expired_leases', { workerId, recovered })
       const job = await queue.claimNext({ workerId, now, leaseMs: 30_000 })
       if (!job) return
+      metrics.increment('jobs_claimed')
       logger.info('worker_job_claimed', { workerId, jobId: job.id })
       const outcome = await processor.execute(job)
+      metrics.increment(`jobs_${outcome}`)
+      await metrics.flush(workerId)
       logger.info('worker_job_finished_unit', { workerId, jobId: job.id, outcome })
     },
   })

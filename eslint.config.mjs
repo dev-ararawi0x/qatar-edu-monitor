@@ -21,6 +21,8 @@ export default tseslint.config(
       globals: {
         console: 'readonly',
         process: 'readonly',
+        fetch: 'readonly',
+        setTimeout: 'readonly',
       },
     },
   },
