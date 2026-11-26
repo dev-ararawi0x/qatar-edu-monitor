@@ -13,13 +13,19 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProtectedRouteImport } from './routes/_protected'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ProtectedDashboardRouteImport } from './routes/_protected/dashboard'
+import { Route as ProtectedJobsIndexRouteImport } from './routes/_protected/jobs/index'
+import { Route as ProtectedJobsJobIdRouteImport } from './routes/_protected/jobs/$jobId'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiV1JobsIndexRouteImport } from './routes/api/v1/jobs/index'
 import { Route as ApiV1JobsSolveRouteImport } from './routes/api/v1/jobs/solve'
 import { Route as ApiV1LmsConnectionIndexRouteImport } from './routes/api/v1/lms-connection/index'
 import { Route as ApiV1LmsConnectionValidateRouteImport } from './routes/api/v1/lms-connection/validate'
 import { Route as ApiV1SubjectsIndexRouteImport } from './routes/api/v1/subjects/index'
+import { Route as ApiV1DraftsDraftIdIndexRouteImport } from './routes/api/v1/drafts/$draftId/index'
+import { Route as ApiV1DraftsDraftIdReviewRouteImport } from './routes/api/v1/drafts/$draftId/review'
 import { Route as ApiV1JobsJobIdIndexRouteImport } from './routes/api/v1/jobs/$jobId/index'
+import { Route as ApiV1JobsJobIdQuestionsRouteImport } from './routes/api/v1/jobs/$jobId/questions'
+import { Route as ApiV1JobsJobIdResumeRouteImport } from './routes/api/v1/jobs/$jobId/resume'
 import { Route as ApiV1SubjectsRefreshIndexRouteImport } from './routes/api/v1/subjects/refresh/index'
 import { Route as ApiV1SubjectsSubjectIdAssessmentsIndexRouteImport } from './routes/api/v1/subjects/$subjectId/assessments/index'
 import { Route as ApiV1SubjectsSubjectIdAssessmentsRefreshRouteImport } from './routes/api/v1/subjects/$subjectId/assessments/refresh'
@@ -41,6 +47,16 @@ const LoginRoute = LoginRouteImport.update({
 const ProtectedDashboardRoute = ProtectedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => ProtectedRoute,
+} as any)
+const ProtectedJobsIndexRoute = ProtectedJobsIndexRouteImport.update({
+  id: '/jobs/',
+  path: '/jobs/',
+  getParentRoute: () => ProtectedRoute,
+} as any)
+const ProtectedJobsJobIdRoute = ProtectedJobsJobIdRouteImport.update({
+  id: '/jobs/$jobId',
+  path: '/jobs/$jobId',
   getParentRoute: () => ProtectedRoute,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
@@ -74,9 +90,30 @@ const ApiV1SubjectsIndexRoute = ApiV1SubjectsIndexRouteImport.update({
   path: '/api/v1/subjects/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1DraftsDraftIdIndexRoute = ApiV1DraftsDraftIdIndexRouteImport.update({
+  id: '/api/v1/drafts/$draftId/',
+  path: '/api/v1/drafts/$draftId/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1DraftsDraftIdReviewRoute =
+  ApiV1DraftsDraftIdReviewRouteImport.update({
+    id: '/api/v1/drafts/$draftId/review',
+    path: '/api/v1/drafts/$draftId/review',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiV1JobsJobIdIndexRoute = ApiV1JobsJobIdIndexRouteImport.update({
   id: '/api/v1/jobs/$jobId/',
   path: '/api/v1/jobs/$jobId/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1JobsJobIdQuestionsRoute = ApiV1JobsJobIdQuestionsRouteImport.update({
+  id: '/api/v1/jobs/$jobId/questions',
+  path: '/api/v1/jobs/$jobId/questions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1JobsJobIdResumeRoute = ApiV1JobsJobIdResumeRouteImport.update({
+  id: '/api/v1/jobs/$jobId/resume',
+  path: '/api/v1/jobs/$jobId/resume',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1SubjectsRefreshIndexRoute =
@@ -102,12 +139,18 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/dashboard': typeof ProtectedDashboardRoute
+  '/jobs/$jobId': typeof ProtectedJobsJobIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/jobs/': typeof ProtectedJobsIndexRoute
   '/api/v1/jobs/solve': typeof ApiV1JobsSolveRoute
   '/api/v1/lms-connection/validate': typeof ApiV1LmsConnectionValidateRoute
   '/api/v1/jobs/': typeof ApiV1JobsIndexRoute
   '/api/v1/lms-connection/': typeof ApiV1LmsConnectionIndexRoute
   '/api/v1/subjects/': typeof ApiV1SubjectsIndexRoute
+  '/api/v1/drafts/$draftId/review': typeof ApiV1DraftsDraftIdReviewRoute
+  '/api/v1/jobs/$jobId/questions': typeof ApiV1JobsJobIdQuestionsRoute
+  '/api/v1/jobs/$jobId/resume': typeof ApiV1JobsJobIdResumeRoute
+  '/api/v1/drafts/$draftId/': typeof ApiV1DraftsDraftIdIndexRoute
   '/api/v1/jobs/$jobId/': typeof ApiV1JobsJobIdIndexRoute
   '/api/v1/subjects/refresh/': typeof ApiV1SubjectsRefreshIndexRoute
   '/api/v1/subjects/$subjectId/assessments/refresh': typeof ApiV1SubjectsSubjectIdAssessmentsRefreshRoute
@@ -117,12 +160,18 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/dashboard': typeof ProtectedDashboardRoute
+  '/jobs/$jobId': typeof ProtectedJobsJobIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/jobs': typeof ProtectedJobsIndexRoute
   '/api/v1/jobs/solve': typeof ApiV1JobsSolveRoute
   '/api/v1/lms-connection/validate': typeof ApiV1LmsConnectionValidateRoute
   '/api/v1/jobs': typeof ApiV1JobsIndexRoute
   '/api/v1/lms-connection': typeof ApiV1LmsConnectionIndexRoute
   '/api/v1/subjects': typeof ApiV1SubjectsIndexRoute
+  '/api/v1/drafts/$draftId/review': typeof ApiV1DraftsDraftIdReviewRoute
+  '/api/v1/jobs/$jobId/questions': typeof ApiV1JobsJobIdQuestionsRoute
+  '/api/v1/jobs/$jobId/resume': typeof ApiV1JobsJobIdResumeRoute
+  '/api/v1/drafts/$draftId': typeof ApiV1DraftsDraftIdIndexRoute
   '/api/v1/jobs/$jobId': typeof ApiV1JobsJobIdIndexRoute
   '/api/v1/subjects/refresh': typeof ApiV1SubjectsRefreshIndexRoute
   '/api/v1/subjects/$subjectId/assessments/refresh': typeof ApiV1SubjectsSubjectIdAssessmentsRefreshRoute
@@ -134,12 +183,18 @@ export interface FileRoutesById {
   '/_protected': typeof ProtectedRouteWithChildren
   '/login': typeof LoginRoute
   '/_protected/dashboard': typeof ProtectedDashboardRoute
+  '/_protected/jobs/$jobId': typeof ProtectedJobsJobIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/_protected/jobs/': typeof ProtectedJobsIndexRoute
   '/api/v1/jobs/solve': typeof ApiV1JobsSolveRoute
   '/api/v1/lms-connection/validate': typeof ApiV1LmsConnectionValidateRoute
   '/api/v1/jobs/': typeof ApiV1JobsIndexRoute
   '/api/v1/lms-connection/': typeof ApiV1LmsConnectionIndexRoute
   '/api/v1/subjects/': typeof ApiV1SubjectsIndexRoute
+  '/api/v1/drafts/$draftId/review': typeof ApiV1DraftsDraftIdReviewRoute
+  '/api/v1/jobs/$jobId/questions': typeof ApiV1JobsJobIdQuestionsRoute
+  '/api/v1/jobs/$jobId/resume': typeof ApiV1JobsJobIdResumeRoute
+  '/api/v1/drafts/$draftId/': typeof ApiV1DraftsDraftIdIndexRoute
   '/api/v1/jobs/$jobId/': typeof ApiV1JobsJobIdIndexRoute
   '/api/v1/subjects/refresh/': typeof ApiV1SubjectsRefreshIndexRoute
   '/api/v1/subjects/$subjectId/assessments/refresh': typeof ApiV1SubjectsSubjectIdAssessmentsRefreshRoute
@@ -151,12 +206,18 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/dashboard'
+    | '/jobs/$jobId'
     | '/api/auth/$'
+    | '/jobs/'
     | '/api/v1/jobs/solve'
     | '/api/v1/lms-connection/validate'
     | '/api/v1/jobs/'
     | '/api/v1/lms-connection/'
     | '/api/v1/subjects/'
+    | '/api/v1/drafts/$draftId/review'
+    | '/api/v1/jobs/$jobId/questions'
+    | '/api/v1/jobs/$jobId/resume'
+    | '/api/v1/drafts/$draftId/'
     | '/api/v1/jobs/$jobId/'
     | '/api/v1/subjects/refresh/'
     | '/api/v1/subjects/$subjectId/assessments/refresh'
@@ -166,12 +227,18 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/dashboard'
+    | '/jobs/$jobId'
     | '/api/auth/$'
+    | '/jobs'
     | '/api/v1/jobs/solve'
     | '/api/v1/lms-connection/validate'
     | '/api/v1/jobs'
     | '/api/v1/lms-connection'
     | '/api/v1/subjects'
+    | '/api/v1/drafts/$draftId/review'
+    | '/api/v1/jobs/$jobId/questions'
+    | '/api/v1/jobs/$jobId/resume'
+    | '/api/v1/drafts/$draftId'
     | '/api/v1/jobs/$jobId'
     | '/api/v1/subjects/refresh'
     | '/api/v1/subjects/$subjectId/assessments/refresh'
@@ -182,12 +249,18 @@ export interface FileRouteTypes {
     | '/_protected'
     | '/login'
     | '/_protected/dashboard'
+    | '/_protected/jobs/$jobId'
     | '/api/auth/$'
+    | '/_protected/jobs/'
     | '/api/v1/jobs/solve'
     | '/api/v1/lms-connection/validate'
     | '/api/v1/jobs/'
     | '/api/v1/lms-connection/'
     | '/api/v1/subjects/'
+    | '/api/v1/drafts/$draftId/review'
+    | '/api/v1/jobs/$jobId/questions'
+    | '/api/v1/jobs/$jobId/resume'
+    | '/api/v1/drafts/$draftId/'
     | '/api/v1/jobs/$jobId/'
     | '/api/v1/subjects/refresh/'
     | '/api/v1/subjects/$subjectId/assessments/refresh'
@@ -204,6 +277,10 @@ export interface RootRouteChildren {
   ApiV1JobsIndexRoute: typeof ApiV1JobsIndexRoute
   ApiV1LmsConnectionIndexRoute: typeof ApiV1LmsConnectionIndexRoute
   ApiV1SubjectsIndexRoute: typeof ApiV1SubjectsIndexRoute
+  ApiV1DraftsDraftIdReviewRoute: typeof ApiV1DraftsDraftIdReviewRoute
+  ApiV1JobsJobIdQuestionsRoute: typeof ApiV1JobsJobIdQuestionsRoute
+  ApiV1JobsJobIdResumeRoute: typeof ApiV1JobsJobIdResumeRoute
+  ApiV1DraftsDraftIdIndexRoute: typeof ApiV1DraftsDraftIdIndexRoute
   ApiV1JobsJobIdIndexRoute: typeof ApiV1JobsJobIdIndexRoute
   ApiV1SubjectsRefreshIndexRoute: typeof ApiV1SubjectsRefreshIndexRoute
   ApiV1SubjectsSubjectIdAssessmentsRefreshRoute: typeof ApiV1SubjectsSubjectIdAssessmentsRefreshRoute
@@ -238,6 +315,20 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof ProtectedDashboardRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
+    '/_protected/jobs/': {
+      id: '/_protected/jobs/'
+      path: '/jobs'
+      fullPath: '/jobs/'
+      preLoaderRoute: typeof ProtectedJobsIndexRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
+    '/_protected/jobs/$jobId': {
+      id: '/_protected/jobs/$jobId'
+      path: '/jobs/$jobId'
+      fullPath: '/jobs/$jobId'
+      preLoaderRoute: typeof ProtectedJobsJobIdRouteImport
       parentRoute: typeof ProtectedRoute
     }
     '/api/auth/$': {
@@ -282,11 +373,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1SubjectsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/drafts/$draftId/': {
+      id: '/api/v1/drafts/$draftId/'
+      path: '/api/v1/drafts/$draftId'
+      fullPath: '/api/v1/drafts/$draftId/'
+      preLoaderRoute: typeof ApiV1DraftsDraftIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/drafts/$draftId/review': {
+      id: '/api/v1/drafts/$draftId/review'
+      path: '/api/v1/drafts/$draftId/review'
+      fullPath: '/api/v1/drafts/$draftId/review'
+      preLoaderRoute: typeof ApiV1DraftsDraftIdReviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/jobs/$jobId/': {
       id: '/api/v1/jobs/$jobId/'
       path: '/api/v1/jobs/$jobId'
       fullPath: '/api/v1/jobs/$jobId/'
       preLoaderRoute: typeof ApiV1JobsJobIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/jobs/$jobId/questions': {
+      id: '/api/v1/jobs/$jobId/questions'
+      path: '/api/v1/jobs/$jobId/questions'
+      fullPath: '/api/v1/jobs/$jobId/questions'
+      preLoaderRoute: typeof ApiV1JobsJobIdQuestionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/jobs/$jobId/resume': {
+      id: '/api/v1/jobs/$jobId/resume'
+      path: '/api/v1/jobs/$jobId/resume'
+      fullPath: '/api/v1/jobs/$jobId/resume'
+      preLoaderRoute: typeof ApiV1JobsJobIdResumeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/subjects/refresh/': {
@@ -315,10 +434,14 @@ declare module '@tanstack/react-router' {
 
 interface ProtectedRouteChildren {
   ProtectedDashboardRoute: typeof ProtectedDashboardRoute
+  ProtectedJobsJobIdRoute: typeof ProtectedJobsJobIdRoute
+  ProtectedJobsIndexRoute: typeof ProtectedJobsIndexRoute
 }
 
 const ProtectedRouteChildren: ProtectedRouteChildren = {
   ProtectedDashboardRoute: ProtectedDashboardRoute,
+  ProtectedJobsJobIdRoute: ProtectedJobsJobIdRoute,
+  ProtectedJobsIndexRoute: ProtectedJobsIndexRoute,
 }
 
 const ProtectedRouteWithChildren = ProtectedRoute._addFileChildren(
@@ -335,6 +458,10 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1JobsIndexRoute: ApiV1JobsIndexRoute,
   ApiV1LmsConnectionIndexRoute: ApiV1LmsConnectionIndexRoute,
   ApiV1SubjectsIndexRoute: ApiV1SubjectsIndexRoute,
+  ApiV1DraftsDraftIdReviewRoute: ApiV1DraftsDraftIdReviewRoute,
+  ApiV1JobsJobIdQuestionsRoute: ApiV1JobsJobIdQuestionsRoute,
+  ApiV1JobsJobIdResumeRoute: ApiV1JobsJobIdResumeRoute,
+  ApiV1DraftsDraftIdIndexRoute: ApiV1DraftsDraftIdIndexRoute,
   ApiV1JobsJobIdIndexRoute: ApiV1JobsJobIdIndexRoute,
   ApiV1SubjectsRefreshIndexRoute: ApiV1SubjectsRefreshIndexRoute,
   ApiV1SubjectsSubjectIdAssessmentsRefreshRoute:

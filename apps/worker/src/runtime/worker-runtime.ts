@@ -10,6 +10,7 @@ export interface WorkerRuntimeOptions {
 export class WorkerRuntime {
   private timer: NodeJS.Timeout | null = null
   private stopping = false
+  private runningTick: Promise<void> | null = null
 
   constructor(private readonly options: WorkerRuntimeOptions) {}
 
@@ -17,12 +18,14 @@ export class WorkerRuntime {
     if (this.timer) return
     this.options.logger.info('worker_started', { workerId: this.options.workerId })
     this.timer = setInterval(() => {
-      if (this.stopping) return
-      Promise.resolve(this.options.onTick?.()).catch((error) => {
+      if (this.stopping || this.runningTick) return
+      this.runningTick = Promise.resolve(this.options.onTick?.()).catch((error) => {
         this.options.logger.error('worker_tick_failed', {
           workerId: this.options.workerId,
           errorName: error instanceof Error ? error.name : 'UnknownError',
         })
+      }).finally(() => {
+        this.runningTick = null
       })
     }, this.options.pollIntervalMs)
   }
@@ -31,6 +34,7 @@ export class WorkerRuntime {
     this.stopping = true
     if (this.timer) clearInterval(this.timer)
     this.timer = null
+    if (this.runningTick) await this.runningTick
     this.options.logger.info('worker_stopped', { workerId: this.options.workerId })
   }
 }

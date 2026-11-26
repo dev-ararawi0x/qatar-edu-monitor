@@ -49,6 +49,7 @@ export interface SolveJobRepositoryPort {
   }): Promise<CreateJobReceipt[]>
   listJobs(userId: string, status?: SolveJobStatus): Promise<SolveJobSnapshot[]>
   findOwnedJob(userId: string, jobId: string): Promise<SolveJobSnapshot | null>
+  resumePausedJob(userId: string, jobId: string, now: Date): Promise<boolean>
 }
 
 export interface ClaimedSolveJob extends SolveJobSnapshot {

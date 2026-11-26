@@ -77,4 +77,9 @@ export class DrizzleSolveJobRepository implements SolveJobRepositoryPort {
     const rows = await this.db.select().from(solveJobs).where(and(eq(solveJobs.id, jobId), eq(solveJobs.userId, userId))).limit(1)
     return rows[0] ? job(rows[0]) : null
   }
+  async resumePausedJob(userId: string, jobId: string, now: Date) {
+    const rows = await this.db.update(solveJobs).set({ status: 'queued', pauseReason: null, userMessage: null, availableAt: now, updatedAt: now }).where(and(eq(solveJobs.id, jobId), eq(solveJobs.userId, userId), eq(solveJobs.status, 'paused'))).returning({ id: solveJobs.id })
+    return rows.length > 0
+  }
+
 }

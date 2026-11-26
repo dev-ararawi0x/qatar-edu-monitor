@@ -1,5 +1,5 @@
-import { CreateSolveJobs, GetLmsConnection, GetSolveJob, ListAssessments, ListSolveJobs, ListSubjects, RefreshAssessments, RefreshSubjects, RevokeLmsConnection, SaveLmsCredential, ValidateLmsConnection } from '@hallili/application'
-import { createDatabase, DrizzleCatalogRepository, DrizzleLmsCredentialRepository, DrizzleSolveJobRepository } from '@hallili/db'
+import { CreateSolveJobs, GetJobQuestions, GetLmsConnection, MarkDraftReviewed, UpdateDraft, GetSolveJob, ResumeSolveJob, ListAssessments, ListSolveJobs, ListSubjects, RefreshAssessments, RefreshSubjects, RevokeLmsConnection, SaveLmsCredential, ValidateLmsConnection } from '@hallili/application'
+import { createDatabase, DrizzleCatalogRepository, DrizzleLmsCredentialRepository, DrizzleSolveJobRepository, DrizzleDraftRepository } from '@hallili/db'
 import { AesGcmCredentialCipher, FakeLmsAdapter } from '@hallili/integrations'
 
 function requiredEnv(name: string) {
@@ -12,6 +12,7 @@ const database = createDatabase(requiredEnv('DATABASE_URL'))
 const repository = new DrizzleLmsCredentialRepository(database.db)
 const catalogRepository = new DrizzleCatalogRepository(database.db)
 const solveJobRepository = new DrizzleSolveJobRepository(database.db)
+const draftRepository = new DrizzleDraftRepository(database.db)
 const cipher = new AesGcmCredentialCipher(requiredEnv('ENCRYPTION_KEY'))
 const fakeLms = new FakeLmsAdapter(process.env.FAKE_LMS_MODE === 'expired' ? 'expired' : 'success')
 const clock = { now: () => new Date() }
@@ -35,4 +36,11 @@ export const solvingUseCases = {
   create: new CreateSolveJobs(solveJobRepository, clock),
   list: new ListSolveJobs(solveJobRepository),
   get: new GetSolveJob(solveJobRepository),
+  resume: new ResumeSolveJob(solveJobRepository, repository, clock),
+}
+
+export const draftUseCases = {
+  questions: new GetJobQuestions(draftRepository),
+  update: new UpdateDraft(draftRepository, clock),
+  review: new MarkDraftReviewed(draftRepository, clock),
 }

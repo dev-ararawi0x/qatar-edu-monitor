@@ -20,6 +20,7 @@ function repository(attempts: AssessmentAttemptSnapshot[]): SolveJobRepositoryPo
     },
     async listJobs() { return [] },
     async findOwnedJob() { return null },
+    async resumePausedJob() { return true },
   }
 }
 const actor = { userId: 'user-1' as never }

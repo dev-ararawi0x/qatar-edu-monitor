@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Phase 6 — Worker reliability — Hallili Interactive Docs</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 antialiased">
+  <div class="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,.18),_transparent_34rem),radial-gradient(circle_at_bottom_right,_rgba(168,85,247,.13),_transparent_30rem)]">
+    <header class="sticky top-0 z-20 border-b border-white/10 bg-slate-950/85 backdrop-blur">
+      <div class="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
+        <a href="./index.html" class="text-lg font-bold tracking-tight text-white">Hallili <span class="text-sky-300">Interactive Docs</span></a>
+        <nav class="flex gap-3 text-sm">
+          <a class="rounded-full px-3 py-1 text-slate-300 hover:bg-white/10 hover:text-white" href="./index.html">Phases</a>
+          <a class="rounded-full px-3 py-1 text-slate-300 hover:bg-white/10 hover:text-white" href="./unrecorded-decisions.html">Unrecorded decisions</a>
+        </nav>
+      </div>
+    </header>
+
+<div class="mb-8"><p class="text-sm font-semibold uppercase tracking-[.25em] text-sky-300">Phase 6</p><h1 class="mt-3 text-4xl font-black tracking-tight text-white">Worker reliability, leases, and recovery</h1><p class="mt-4 max-w-3xl text-lg leading-8 text-slate-300">The Worker is now a real queue consumer. It serializes each LMS account, respects a shared global rate-limit state, materializes question manifests once, checkpoints each durable question, pauses typed blockers, resumes safely, and recovers expired leases after crashes.</p></div>
+<section class="mb-5 rounded-2xl border border-white/10 bg-white/[.055]"><button data-toggle="p6-files" class="flex w-full items-center justify-between px-5 py-4 text-left"><span class="text-lg font-semibold">Processing architecture</span><span data-chevron>⌄</span></button><div id="p6-files" class="border-t border-white/10 px-5 py-5"><div class="grid gap-4 lg:grid-cols-2"><pre class="rounded-xl bg-slate-900/80 p-4 font-mono text-sm leading-7 text-slate-300">apps/worker/src/
+├── main.ts                    # composition root
+└── runtime/worker-runtime.ts  # serialized polling/shutdown
+application/solving/
+├── processing.ts              # processing/lease/rate ports
+├── process-solve-job.ts       # orchestration use case
+└── resume-solve-job.ts        # safe paused→queued transition
+db/repositories/
+├── solve-job-processing-repository.ts
+├── lms-account-lease-repository.ts
+└── lms-rate-limit-repository.ts
+web/routes/api/v1/jobs/$jobId/resume.ts</pre><div class="space-y-3 text-sm leading-7 text-slate-300"><p><b class="text-white">No long transactions:</b> claiming and checkpoints are separate short transactions; LMS/AI calls occur outside them.</p><p><b class="text-white">Account serialization:</b> a compare-and-set PostgreSQL lease prevents concurrent workers racing one rotating LMS session.</p><p><b class="text-white">Manifest rule:</b> question identity is validated before insertion; positions and external IDs/fingerprints are unique. Replay skips durable questions.</p><p><b class="text-white">Recovery:</b> expired running leases are returned to queued with a stable <code>WORKER_LEASE_EXPIRED</code> marker.</p></div></div></div></section>
+<section class="mb-5 rounded-2xl border border-white/10 bg-white/[.055]"><button data-toggle="p6-flow" class="flex w-full items-center justify-between px-5 py-4 text-left"><span class="text-lg font-semibold">Worker loop</span><span data-chevron>⌄</span></button><div id="p6-flow" class="border-t border-white/10 px-5 py-5"><div class="grid gap-3 md:grid-cols-7 text-center text-sm"><div class="rounded-xl bg-white/10 p-4">recover stale leases</div><div class="rounded-xl bg-sky-400/10 p-4">claim SKIP LOCKED</div><div class="rounded-xl bg-purple-400/10 p-4">account lease</div><div class="rounded-xl bg-purple-400/20 p-4">rate state</div><div class="rounded-xl bg-amber-400/10 p-4">manifest once</div><div class="rounded-xl bg-emerald-400/10 p-4">question checkpoints</div><div class="rounded-xl bg-white/10 p-4">complete/pause</div></div></div></section>
+<section class="rounded-2xl border border-white/10 bg-white/[.055]"><button data-toggle="p6-verify" class="flex w-full items-center justify-between px-5 py-4 text-left"><span class="text-lg font-semibold">Verification evidence</span><span data-chevron>⌄</span></button><div id="p6-verify" class="border-t border-white/10 px-5 py-5"><ul class="list-disc space-y-2 pl-5 text-sm leading-7 text-slate-300"><li>A live fixture-backed processing smoke test completed a two-question job and recorded <code>completed 2/2</code>.</li><li>Integration tests prove live account leases cannot be stolen and release requires the owner token.</li><li>Integration tests prove independently constructed rate limiter instances coordinate through PostgreSQL.</li><li>Application tests prove manifest insertion occurs once and durable questions are skipped on resume.</li><li>Resume returns only <code>queued</code>; it never accepts or sets <code>running</code> from the browser.</li></ul></div></section>
+</main>
+  </div>
+  <script>
+    document.querySelectorAll('[data-toggle]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const target = document.getElementById(button.dataset.toggle)
+        if (!target) return
+        target.classList.toggle('hidden')
+        button.querySelector('[data-chevron]')?.classList.toggle('rotate-180')
+      })
+    })
+  </script>
+</body>
+</html>

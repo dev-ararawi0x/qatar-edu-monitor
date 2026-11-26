@@ -98,13 +98,13 @@ A task is done when its code and docs are reviewed; typecheck/lint/tests pass; a
 
 | ID | Status | Priority | Task | Depends on | Definition of Done |
 |---|---|---|---|---|---|
-| H-060 | TODO | P0 | Implement Worker runtime and graceful shutdown | H-013,H-056 | Worker starts, stops claiming on SIGTERM, closes resources |
-| H-061 | TODO | P0 | Implement job lease and heartbeat | H-056,H-060 | Lease expiry/reclaim and stale worker ownership tests pass |
-| H-062 | TODO | P0 | Implement LMS account lease | H-031,H-060,H-005 | Same connection cannot be processed concurrently while lease is valid |
-| H-063 | TODO | P1 | Implement shared global rate limiter | H-035,H-060,H-014 | Coordination works across multiple Worker instances; respects blocks |
-| H-064 | TODO | P0 | Implement question-manifest initialization and checkpoint processing with fake ports | H-052,H-056,H-060 | Manifest identity is validated and persisted once; processing is sequential; durable question is not repeated on resume; OD-24 is reconciled in System Design |
-| H-065 | TODO | P1 | Implement typed pause/resume use cases and endpoint | H-052,H-054,H-064 | Resume returns queued; blocker resolution and ownership validated |
-| H-066 | TODO | P1 | Implement stale-job recovery and reconciliation marker | H-061,H-064 | Crash recovery skips durable work and flags ambiguous remote writes |
+| H-060 | DONE | P0 | Implement Worker runtime and graceful shutdown | H-013,H-056 | Worker starts, stops claiming on SIGTERM, closes resources |
+| H-061 | DONE | P0 | Implement job lease and heartbeat | H-056,H-060 | Lease expiry/reclaim and stale worker ownership tests pass |
+| H-062 | DONE | P0 | Implement LMS account lease | H-031,H-060,H-005 | Same connection cannot be processed concurrently while lease is valid |
+| H-063 | DONE | P1 | Implement shared global rate limiter | H-035,H-060,H-014 | Coordination works across multiple Worker instances; respects blocks |
+| H-064 | DONE | P0 | Implement question-manifest initialization and checkpoint processing with fake ports | H-052,H-056,H-060 | Manifest identity is validated and persisted once; processing is sequential; durable question is not repeated on resume; OD-24 is reconciled in System Design |
+| H-065 | DONE | P1 | Implement typed pause/resume use cases and endpoint | H-052,H-054,H-064 | Resume returns queued; blocker resolution and ownership validated |
+| H-066 | DONE | P1 | Implement stale-job recovery and reconciliation marker | H-061,H-064 | Crash recovery skips durable work and flags ambiguous remote writes |
 
 ## Phase 7 — AI and local draft review
 
