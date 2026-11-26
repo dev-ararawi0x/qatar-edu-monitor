@@ -14,6 +14,8 @@ import { Route as ProtectedRouteImport } from './routes/_protected'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ProtectedDashboardRouteImport } from './routes/_protected/dashboard'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiV1LmsConnectionIndexRouteImport } from './routes/api/v1/lms-connection/index'
+import { Route as ApiV1LmsConnectionValidateRouteImport } from './routes/api/v1/lms-connection/validate'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -39,18 +41,33 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1LmsConnectionIndexRoute = ApiV1LmsConnectionIndexRouteImport.update({
+  id: '/api/v1/lms-connection/',
+  path: '/api/v1/lms-connection/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1LmsConnectionValidateRoute =
+  ApiV1LmsConnectionValidateRouteImport.update({
+    id: '/api/v1/lms-connection/validate',
+    path: '/api/v1/lms-connection/validate',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/dashboard': typeof ProtectedDashboardRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/v1/lms-connection/validate': typeof ApiV1LmsConnectionValidateRoute
+  '/api/v1/lms-connection/': typeof ApiV1LmsConnectionIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/dashboard': typeof ProtectedDashboardRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/v1/lms-connection/validate': typeof ApiV1LmsConnectionValidateRoute
+  '/api/v1/lms-connection': typeof ApiV1LmsConnectionIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -59,12 +76,26 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/_protected/dashboard': typeof ProtectedDashboardRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/v1/lms-connection/validate': typeof ApiV1LmsConnectionValidateRoute
+  '/api/v1/lms-connection/': typeof ApiV1LmsConnectionIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/dashboard' | '/api/auth/$'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/dashboard'
+    | '/api/auth/$'
+    | '/api/v1/lms-connection/validate'
+    | '/api/v1/lms-connection/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/dashboard' | '/api/auth/$'
+  to:
+    | '/'
+    | '/login'
+    | '/dashboard'
+    | '/api/auth/$'
+    | '/api/v1/lms-connection/validate'
+    | '/api/v1/lms-connection'
   id:
     | '__root__'
     | '/'
@@ -72,6 +103,8 @@ export interface FileRouteTypes {
     | '/login'
     | '/_protected/dashboard'
     | '/api/auth/$'
+    | '/api/v1/lms-connection/validate'
+    | '/api/v1/lms-connection/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -79,6 +112,8 @@ export interface RootRouteChildren {
   ProtectedRoute: typeof ProtectedRouteWithChildren
   LoginRoute: typeof LoginRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiV1LmsConnectionValidateRoute: typeof ApiV1LmsConnectionValidateRoute
+  ApiV1LmsConnectionIndexRoute: typeof ApiV1LmsConnectionIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -118,6 +153,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/lms-connection/': {
+      id: '/api/v1/lms-connection/'
+      path: '/api/v1/lms-connection'
+      fullPath: '/api/v1/lms-connection/'
+      preLoaderRoute: typeof ApiV1LmsConnectionIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/lms-connection/validate': {
+      id: '/api/v1/lms-connection/validate'
+      path: '/api/v1/lms-connection/validate'
+      fullPath: '/api/v1/lms-connection/validate'
+      preLoaderRoute: typeof ApiV1LmsConnectionValidateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -138,6 +187,8 @@ const rootRouteChildren: RootRouteChildren = {
   ProtectedRoute: ProtectedRouteWithChildren,
   LoginRoute: LoginRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiV1LmsConnectionValidateRoute: ApiV1LmsConnectionValidateRoute,
+  ApiV1LmsConnectionIndexRoute: ApiV1LmsConnectionIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

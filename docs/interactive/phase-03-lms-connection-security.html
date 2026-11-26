@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Phase 3 — LMS connection security — Hallili Interactive Docs</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 antialiased">
+  <div class="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,.18),_transparent_34rem),radial-gradient(circle_at_bottom_right,_rgba(168,85,247,.13),_transparent_30rem)]">
+    <header class="sticky top-0 z-20 border-b border-white/10 bg-slate-950/85 backdrop-blur">
+      <div class="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
+        <a href="./index.html" class="text-lg font-bold tracking-tight text-white">Hallili <span class="text-sky-300">Interactive Docs</span></a>
+        <nav class="flex gap-3 text-sm">
+          <a class="rounded-full px-3 py-1 text-slate-300 hover:bg-white/10 hover:text-white" href="./index.html">Phases</a>
+          <a class="rounded-full px-3 py-1 text-slate-300 hover:bg-white/10 hover:text-white" href="./unrecorded-decisions.html">Unrecorded decisions</a>
+        </nav>
+      </div>
+    </header>
+
+<div class="mb-8"><p class="text-sm font-semibold uppercase tracking-[.25em] text-sky-300">Phase 3</p><h1 class="mt-3 text-4xl font-black tracking-tight text-white">LMS connection security and fake adapter</h1><p class="mt-4 max-w-3xl text-lg leading-8 text-slate-300">Credential material is encrypted with AES-256-GCM, bound to the owning user/connection through AAD, never returned by the API, and wiped on revoke. The LMS integration boundary remains a fixture-backed fake because live authorization gates are unresolved.</p></div>
+<section class="mb-5 rounded-2xl border border-white/10 bg-white/[.055]"><button data-toggle="p3-files" class="flex w-full items-center justify-between px-5 py-4 text-left"><span class="text-lg font-semibold">Module map</span><span data-chevron>⌄</span></button><div id="p3-files" class="border-t border-white/10 px-5 py-5"><div class="grid gap-4 lg:grid-cols-2"><pre class="rounded-xl bg-slate-900/80 p-4 font-mono text-sm leading-7 text-slate-300">packages/application/src/lms/
+├── ports.ts       # cipher, repository, LMS read contracts
+└── use-cases.ts   # save/get/revoke/validate connection
+packages/db/src/
+├── schema/lms-connections.ts
+└── repositories/lms-credential-repository.ts
+packages/integrations/src/
+├── encryption/aes-gcm-credential-cipher.ts
+└── lms/
+    ├── outbound-guard.ts
+    ├── normalizers.ts
+    ├── fake-lms-adapter.ts
+    └── fixtures/catalog-fixtures.ts
+apps/web/src/routes/api/v1/lms-connection/
+├── index.ts       # GET/PUT/DELETE
+└── validate.ts    # POST validation</pre><div class="space-y-3 text-sm leading-7 text-slate-300"><p><b class="text-white">Encryption:</b> random 12-byte nonces, GCM authentication tags, key versioning, and AAD binding make tampering or cross-owner ciphertext reuse fail closed.</p><p><b class="text-white">Persistence:</b> one connection per user; encrypted fields obey an all-present/all-null database check. Revocation sets them null in the same update.</p><p><b class="text-white">Boundary:</b> routes parse Zod contracts, resolve the Better Auth actor, call application use cases, and return sanitized errors.</p><p><b class="text-white">Fake LMS:</b> success, expired, blocked, timeout, and parser mismatch outcomes are deterministic test modes; unknown HTML throws <code>PARSER_MISMATCH</code>.</p></div></div></div></section>
+<section class="mb-5 rounded-2xl border border-white/10 bg-white/[.055]"><button data-toggle="p3-flow" class="flex w-full items-center justify-between px-5 py-4 text-left"><span class="text-lg font-semibold">Credential lifecycle</span><span data-chevron>⌄</span></button><div id="p3-flow" class="border-t border-white/10 px-5 py-5"><div class="grid gap-3 md:grid-cols-5 text-center text-sm"><div class="rounded-xl bg-sky-400/10 p-4">Browser secret<div class="text-xs text-slate-400">strict JSON field only</div></div><div class="rounded-xl bg-sky-400/20 p-4">Web use case<div class="text-xs text-slate-400">no logging/body echo</div></div><div class="rounded-xl bg-purple-400/10 p-4">AES-256-GCM<div class="text-xs text-slate-400">owner-bound AAD</div></div><div class="rounded-xl bg-white/10 p-4">PostgreSQL<div class="text-xs text-slate-400">ciphertext/nonce/tag/version</div></div><div class="rounded-xl bg-emerald-400/10 p-4">Execution only<div class="text-xs text-slate-400">decrypt briefly in server memory</div></div></div></div></section>
+<section class="rounded-2xl border border-white/10 bg-white/[.055]"><button data-toggle="p3-verify" class="flex w-full items-center justify-between px-5 py-4 text-left"><span class="text-lg font-semibold">Verification evidence</span><span data-chevron>⌄</span></button><div id="p3-verify" class="border-t border-white/10 px-5 py-5"><ul class="list-disc space-y-2 pl-5 text-sm leading-7 text-slate-300"><li>Roundtrip, tamper, wrong-AAD, nonce uniqueness, and key-version tests pass.</li><li>Migration created bytea credential columns, unique owner constraint, status check, and all-present/all-null credential check.</li><li>Unauthenticated <code>GET /api/v1/lms-connection</code> smoke test returned the stable 401 error envelope.</li><li>Outbound guard rejects non-HTTPS, unapproved hosts, credentialed URLs, and redirects outside the approved host family.</li><li>Real LMS access remains disabled; fake fixtures are the only enabled adapter path.</li></ul></div></section>
+</main>
+  </div>
+  <script>
+    document.querySelectorAll('[data-toggle]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const target = document.getElementById(button.dataset.toggle)
+        if (!target) return
+        target.classList.toggle('hidden')
+        button.querySelector('[data-chevron]')?.classList.toggle('rotate-180')
+      })
+    })
+  </script>
+</body>
+</html>

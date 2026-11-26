@@ -63,13 +63,13 @@ A task is done when its code and docs are reviewed; typecheck/lint/tests pass; a
 
 | ID | Status | Priority | Task | Depends on | Definition of Done |
 |---|---|---|---|---|---|
-| H-030 | TODO | P0 | Implement AES-256-GCM credential cipher | H-014,H-019 | Roundtrip, tamper, nonce, AAD, key-version tests pass |
-| H-031 | TODO | P0 | Implement LMS connection repository/schema | H-021,H-030 | Unique owner and all-null/all-present credential checks exist |
-| H-032 | TODO | P0 | Implement save/revoke connection use cases | H-030,H-031,H-023 | Owner-scoped; secret never returned; revoke wipes ciphertext |
-| H-033 | TODO | P0 | Implement connection API contracts/routes | H-024,H-032 | PUT/GET/DELETE/validate routes tested, request body not logged |
-| H-034 | TODO | P1 | Define LMS port and fake adapter | H-014,H-015 | Fake supports success, expired, blocked, timeout, parser mismatch |
-| H-035 | TODO | P0 | Implement outbound host/redirect/size/timeout guard | H-034,H-005 | Unit tests reject unapproved host/redirect; no arbitrary URL input |
-| H-036 | TODO | P1 | Implement sanitized LMS fixtures and normalizers | H-034,H-005 | Fixtures have known normalized expected values; secrets redacted |
+| H-030 | DONE | P0 | Implement AES-256-GCM credential cipher | H-014,H-019 | Roundtrip, tamper, nonce, AAD, key-version tests pass |
+| H-031 | DONE | P0 | Implement LMS connection repository/schema | H-021,H-030 | Unique owner and all-null/all-present credential checks exist |
+| H-032 | DONE | P0 | Implement save/revoke connection use cases | H-030,H-031,H-023 | Owner-scoped; secret never returned; revoke wipes ciphertext |
+| H-033 | DONE | P0 | Implement connection API contracts/routes | H-024,H-032 | PUT/GET/DELETE/validate routes tested, request body not logged |
+| H-034 | DONE | P1 | Define LMS port and fake adapter | H-014,H-015 | Fake supports success, expired, blocked, timeout, parser mismatch |
+| H-035 | DONE | P0 | Implement outbound host/redirect/size/timeout guard | H-034,H-005 | Unit tests reject unapproved host/redirect; no arbitrary URL input |
+| H-036 | DONE | P1 | Implement sanitized LMS fixtures and normalizers | H-034,H-005 | Fixtures have known normalized expected values; secrets redacted |
 
 ## Phase 4 — Catalog
 

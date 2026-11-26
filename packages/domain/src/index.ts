@@ -16,3 +16,5 @@ export class DomainError extends Error {
 export function assertNever(value: never): never {
   throw new DomainError('UNREACHABLE_VARIANT', `Unhandled variant: ${String(value)}`)
 }
+
+export * from './lms'

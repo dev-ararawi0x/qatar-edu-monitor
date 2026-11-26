@@ -38,3 +38,6 @@ export function requireActor(actor: ActorContext | null): ActorContext {
 }
 
 export * from './ownership'
+
+export * from './lms/ports'
+export * from './lms/use-cases'
