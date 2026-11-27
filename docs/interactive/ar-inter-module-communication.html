@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hallili — Inter-Module Communication</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    .technical { direction: ltr; unicode-bidi: embed; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+    .flow-arrow::after { content: "←"; position: absolute; top: 100%; right: 50%; transform: translateX(50%); color: #38bdf8; font-size: 1.4rem; line-height: 2rem; }
+    .flow-arrow:last-child::after { display: none; }
+    .lane-on { box-shadow: 0 0 0 2px rgba(56,189,248,.65), 0 18px 45px rgba(2,8,23,.35); }
+    .dimmed { opacity: .24; filter: grayscale(.7); }
+    .step-line::before { content: ""; position: absolute; top: 0; bottom: 0; right: 1.05rem; width: 2px; background: linear-gradient(#38bdf8,#a78bfa); opacity: .5; }
+    details summary::-webkit-details-marker { display: none; }
+  </style>
+</head>
+<body data-initial-view="inter" class="bg-slate-950 text-slate-100 antialiased">
+<div class="min-h-screen bg-[radial-gradient(circle_at_top_right,_rgba(14,165,233,.22),_transparent_32rem),radial-gradient(circle_at_bottom_left,_rgba(168,85,247,.16),_transparent_30rem)]">
+  <header class="sticky top-0 z-40 border-b border-white/10 bg-slate-950/90 backdrop-blur-xl">
+    <div class="mx-auto flex max-w-[1500px] flex-col gap-4 px-5 py-4 xl:flex-row xl:items-center xl:justify-between">
+      <div>
+        <a href="./index.html" class="text-lg font-black tracking-tight text-white">Hallili <span class="text-sky-300">Interactive Docs</span></a>
+        <p class="mt-1 text-sm text-slate-400">خريطة عربية RTL للبنية، مع بقاء المصطلحات التقنية English كما وردت في الوثائق.</p>
+      </div>
+      <nav class="flex flex-wrap gap-2 text-sm" aria-label="الأقسام الرئيسية">
+        <a href="./ar-intra-module-communication.html" class="rounded-full border border-white/10 px-4 py-2 text-slate-300 hover:bg-white/10">1. داخل كل Module</a>
+        <a href="./ar-inter-module-communication.html" class="rounded-full border border-white/10 px-4 py-2 text-slate-300 hover:bg-white/10">2. بين الـ Modules</a>
+        <a href="./ar-app-system-communication.html" class="rounded-full border border-white/10 px-4 py-2 text-slate-300 hover:bg-white/10">3. Apps & System Flows</a>
+        <a class="rounded-full border border-white/10 px-4 py-2 text-slate-300 hover:bg-white/10" href="./index.html">English phase docs</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-[1500px] px-5 py-8">
+    <section class="mb-7 grid gap-5 xl:grid-cols-[1.3fr_.7fr]">
+      <div class="rounded-3xl border border-white/10 bg-white/[.055] p-6 shadow-2xl shadow-black/20">
+        <p class="text-sm font-bold uppercase tracking-[.25em] text-sky-300">Design-only contract · v0.1</p>
+        <h1 class="mt-3 text-4xl font-black leading-tight text-white lg:text-5xl">البنية التقنية التفاعلية لمشروع Hallili</h1>
+        <p class="mt-4 max-w-4xl text-lg leading-9 text-slate-300">هذه الصفحة المتخصصة توثّق <b>التصميم المطلوب</b> لا تثبت أن كل ملف موجود فعلياً في التنفيذ الحالي. كل Use Case وPort وTransaction boundary وقاعدة أمان هنا مستمدة من الوثائق الأربعة المحددة فقط. انقر أي Module أو File أو Function أو Flow Step لفتح المدخلات والمخرجات والقواعد والحدود التفصيلية.</p>
+      </div>
+      <aside class="rounded-3xl border border-amber-400/25 bg-amber-400/10 p-6">
+        <h2 class="text-xl font-bold text-amber-100">المصادر الملزمة</h2>
+        <ul class="mt-4 space-y-3 text-sm leading-7 text-amber-50/90">
+          <li><a class="underline decoration-amber-300/50 underline-offset-4 hover:text-white" href="../technical-design/MODULES.md"><span class="technical">MODULES.md</span></a> — ملكية الـ Modules والـ Ports واتجاه الاعتماد.</li>
+          <li><a class="underline decoration-amber-300/50 underline-offset-4 hover:text-white" href="../technical-design/FLOWS.md"><span class="technical">FLOWS.md</span></a> — تدفقات التشغيل والفشل والاستئناف.</li>
+          <li><a class="underline decoration-amber-300/50 underline-offset-4 hover:text-white" href="../technical-design/DATABASE.md"><span class="technical">DATABASE.md</span></a> — الجداول والقيود وحدود Transactions.</li>
+          <li><a class="underline decoration-amber-300/50 underline-offset-4 hover:text-white" href="../technical-design/API_CONTRACTS.md"><span class="technical">API_CONTRACTS.md</span></a> — العقود والأخطاء والـ validation.</li>
+        </ul>
+      </aside>
+    </section>
+
+    <section class="mb-6 rounded-2xl border border-white/10 bg-slate-900/70 p-4">
+      <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <div class="text-sm font-semibold text-slate-400">تصفية حسب runtime أو نوع العنصر</div>
+          <div id="runtimeFilters" class="mt-2 flex flex-wrap gap-2"></div>
+        </div>
+        <label class="relative block w-full lg:w-96">
+          <span class="sr-only">بحث</span>
+          <input id="searchInput" type="search" placeholder="ابحث عن use case أو port أو invariant…" class="w-full rounded-xl border border-white/10 bg-slate-950/80 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500 focus:border-sky-400" />
+        </label>
+      </div>
+    </section>
+
+    <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_430px]">
+      <section id="canvas" class="min-w-0"></section>
+      <aside class="xl:sticky xl:top-28 xl:h-[calc(100vh-8rem)]">
+        <div class="flex h-full flex-col overflow-hidden rounded-3xl border border-sky-400/25 bg-slate-900/90 shadow-2xl shadow-black/30">
+          <div class="border-b border-white/10 bg-sky-400/10 px-5 py-4">
+            <p class="text-xs font-bold uppercase tracking-[.2em] text-sky-300">Inspector</p>
+            <h2 id="inspectorTitle" class="mt-2 text-2xl font-black text-white">اختر عنصراً من الخريطة</h2>
+          </div>
+          <div id="inspectorBody" class="flex-1 overflow-y-auto px-5 py-5 text-sm leading-7 text-slate-300">
+            <div class="rounded-2xl border border-dashed border-white/15 bg-white/[.04] p-5 text-slate-400">انقر File أو Function أو Module أو Flow Step لعرض: input، output، transaction boundary، validation، forbidden shortcuts، والقواعد الأمنية.</div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+</div>
+
+<script src="./assets/arabic-architecture.js"></script>
+</body>
+</html>
